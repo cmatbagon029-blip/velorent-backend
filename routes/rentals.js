@@ -4,10 +4,7 @@ const mysql = require('mysql2/promise');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-<<<<<<< HEAD
 const { uploadImageToS3 } = require('../utils/s3Upload');
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 
 // Test endpoint to check database connection and table structure
 router.get('/test-db', async function(req, res) {
@@ -154,17 +151,7 @@ router.post('/', auth.verifyToken, upload.fields([
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-<<<<<<< HEAD
     // Driver information is optional - no longer required for Pick-up/Drop-off service
-=======
-    // Check if driver is required but not provided
-    if (serviceType === 'Pick-up/Drop-off' && (!driverId || !driverName)) {
-      console.log('Driver validation failed - service type requires driver but driver info missing');
-      console.log('Driver ID value:', driverId, 'Type:', typeof driverId);
-      console.log('Driver Name value:', driverName, 'Type:', typeof driverName);
-      return res.status(400).json({ error: 'Driver selection is required for Pick-up/Drop-off service' });
-    }
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 
     // Check for existing pending or active bookings for this user (not approved ones)
     const [existingActiveBookings] = await connection.execute(
@@ -189,7 +176,6 @@ router.post('/', auth.verifyToken, upload.fields([
       });
     }
 
-<<<<<<< HEAD
     // Upload files to S3 and get URLs
     let validIdPath = null;
     let additionalIdPath = null;
@@ -215,11 +201,6 @@ router.post('/', auth.verifyToken, upload.fields([
         return res.status(500).json({ error: `Failed to upload additional ID: ${uploadResult.message}` });
       }
     }
-=======
-    // Get file paths from req.files
-    const validIdPath = req.files['validId'] ? req.files['validId'][0].path : null;
-    const additionalIdPath = req.files['additionalId'] ? req.files['additionalId'][0].path : null;
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 
     // Get vehicle name and company_id if not provided
     let vehicle_name = vehicleName;
@@ -240,11 +221,7 @@ router.post('/', auth.verifyToken, upload.fields([
     }
 
     // Insert into bookings table (now with user_id, start_date, end_date, company_id, company_name, payment info, and driver info)
-<<<<<<< HEAD
     const [result] = await connection.execute(
-=======
-    await connection.execute(
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
       `INSERT INTO bookings (
         user_id, user_name, mobile_number, vehicle_id, company_id, company_name, vehicle_name, service_type, start_date, end_date, rent_time, destination, occasion, message, valid_id_path, additional_id_path, booking_date, status, driver_id, driver_name, driver_phone, driver_experience
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
@@ -274,7 +251,6 @@ router.post('/', auth.verifyToken, upload.fields([
       ]
     );
 
-<<<<<<< HEAD
     const bookingId = result.insertId;
 
     console.log('=== BOOKING CREATED SUCCESSFULLY ===');
@@ -290,9 +266,6 @@ router.post('/', auth.verifyToken, upload.fields([
     console.log('Sending response:', JSON.stringify(response, null, 2));
 
     res.status(201).json(response);
-=======
-    res.status(201).json({ message: 'Booking created' });
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   } catch (error) {
     console.error('=== BOOKING ERROR DEBUG ===');
     console.error('Error creating booking:', error);
@@ -309,7 +282,6 @@ router.post('/', auth.verifyToken, upload.fields([
   }
 });
 
-<<<<<<< HEAD
 // Delete a cancelled booking (placed early to avoid route conflicts)
 router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
   let connection;
@@ -374,8 +346,6 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
   }
 });
 
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 // Cancel rental
 router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
   let connection;
@@ -412,7 +382,6 @@ router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
   }
 });
 
-<<<<<<< HEAD
 // Delete multiple cancelled bookings
 router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, res) {
   let connection;
@@ -476,8 +445,6 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
   }
 });
 
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 // Add booking to bookings table
 router.post('/bookings', async function(req, res) {
   let connection;
@@ -816,12 +783,9 @@ router.get('/test-db', async function(req, res) {
   }
 });
 
-<<<<<<< HEAD
 // Test route to verify DELETE is working
 router.delete('/test-delete', (req, res) => {
   res.json({ message: 'DELETE method is working' });
 });
 
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 module.exports = router; 

@@ -36,10 +36,7 @@ CREATE TABLE IF NOT EXISTS requests (
     new_rent_time TIME COMMENT 'For reschedule requests',
     computed_fee DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Computed fee based on company policies',
     company_response TEXT COMMENT 'Response from company',
-<<<<<<< HEAD
     company_remarks TEXT COMMENT 'Additional remarks from company',
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

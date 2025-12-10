@@ -29,7 +29,6 @@ router.get('/my-requests', auth.verifyToken, async (req, res) => {
       [req.user.userId]
     );
 
-<<<<<<< HEAD
     // Extract admin remarks from reason field and add as computed property
     const processedRequests = requests.map(request => {
       if (request.reason) {
@@ -52,9 +51,6 @@ router.get('/my-requests', auth.verifyToken, async (req, res) => {
     });
 
     res.json(processedRequests);
-=======
-    res.json(requests);
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   } catch (error) {
     console.error('Error fetching requests:', error);
     res.status(500).json({ 
@@ -97,7 +93,6 @@ router.get('/:id', auth.verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-<<<<<<< HEAD
     // Extract admin remarks from reason field and add as computed property
     const request = requests[0];
     if (request.reason) {
@@ -118,9 +113,6 @@ router.get('/:id', auth.verifyToken, async (req, res) => {
     }
 
     res.json(request);
-=======
-    res.json(requests[0]);
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   } catch (error) {
     console.error('Error fetching request:', error);
     res.status(500).json({ 
@@ -271,7 +263,6 @@ router.post('/', auth.verifyToken, async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
     // Extract admin remarks from reason field and add as computed property
     const newRequest = newRequests[0];
     if (newRequest && newRequest.reason) {
@@ -285,9 +276,6 @@ router.post('/', auth.verifyToken, async (req, res) => {
     }
 
     res.status(201).json(newRequest);
-=======
-    res.status(201).json(newRequests[0]);
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   } catch (error) {
     console.error('Error creating request:', error);
     console.error('Error stack:', error.stack);
@@ -451,11 +439,7 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Request is not pending' });
     }
 
-<<<<<<< HEAD
     // Update request status (company_remarks column doesn't exist, so we only update company_response)
-=======
-    // Update request status
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
     await connection.execute(
       'UPDATE requests SET status = ?, company_response = ?, updated_at = NOW() WHERE id = ?',
       [status, company_response || null, requestId]
@@ -510,7 +494,6 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
       [requestId]
     );
 
-<<<<<<< HEAD
     // Extract admin remarks from reason field and add as computed property
     const updatedRequest = updatedRequests[0];
     if (updatedRequest && updatedRequest.reason) {
@@ -524,9 +507,6 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
     }
 
     res.json(updatedRequest);
-=======
-    res.json(updatedRequests[0]);
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ 
@@ -540,7 +520,6 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // Delete a request (only for cancelled/rejected requests)
 router.delete('/:id', auth.verifyToken, async (req, res) => {
   let connection;
@@ -652,7 +631,5 @@ router.post('/delete-multiple', auth.verifyToken, async (req, res) => {
   }
 });
 
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 module.exports = router;
 
