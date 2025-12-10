@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken');
 
+// JWT Secret from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
 function verifyToken(req, res, next) {
-<<<<<<< HEAD
   const authHeader = req.headers.authorization;
   console.log('=== AUTH MIDDLEWARE DEBUG ===');
   console.log('Authorization header:', authHeader ? 'Present' : 'Missing');
@@ -21,7 +23,7 @@ function verifyToken(req, res, next) {
   console.log('Token received (first 20 chars):', token.substring(0, 20) + '...');
 
   try {
-    const decoded = jwt.verify(token, 'your-secret-key');
+    const decoded = jwt.verify(token, JWT_SECRET);
     console.log('Token decoded successfully:', { userId: decoded.userId, email: decoded.email });
     req.user = decoded;
     next();
@@ -36,17 +38,6 @@ function verifyToken(req, res, next) {
     }
     
     return res.status(401).json({ message: 'Invalid token', error: err.message });
-=======
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-
-  try {
-    const decoded = jwt.verify(token, 'your-secret-key');
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
   }
 }
 

@@ -2,11 +2,11 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-<<<<<<< HEAD
 const config = require('../config');
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 const router = express.Router();
+
+// JWT Secret from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Regular login endpoint
 router.post('/login', async (req, res) => {
@@ -74,7 +74,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role 
       },
-      'your-secret-key', // Replace with your actual secret key
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -201,7 +201,7 @@ router.post('/social-login', async (req, res) => {
         email: user.email,
         provider: user.provider 
       },
-      'your-secret-key', // Replace with your actual secret key
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
 
