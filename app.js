@@ -8,32 +8,21 @@ const rentalRoutes = require('./routes/rentals');
 const verificationRoutes = require('./routes/verification');
 const requestRoutes = require('./routes/requests');
 const notificationRoutes = require('./routes/notifications');
+
 const paymentRoutes = require('./routes/payments');
+
+
 
 const app = express();
 
 // Middleware
-// Configure CORS to allow requests from mobile app and localhost
+// Configure CORS to allow requests from mobile app
 app.use(cors({
   origin: '*', // Allow all origins for development (restrict in production)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-
-// Extra CORS headers for Render and localhost
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Credentials", "true");
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -44,7 +33,10 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/notifications', notificationRoutes);
+
 app.use('/api/payments', paymentRoutes);
+
+
 
 // Use the verification routes BEFORE app.listen
 app.use('/api', verificationRoutes);

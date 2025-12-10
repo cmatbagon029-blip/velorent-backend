@@ -7,10 +7,7 @@ const config = require('../config');
 router.get('/', async (req, res) => {
   let connection;
   try {
-<<<<<<< HEAD
     const { status } = req.query; // Optional status filter
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
     console.log('Connecting to database...');
     connection = await mysql.createConnection({
       host: 'localhost',
@@ -19,28 +16,18 @@ router.get('/', async (req, res) => {
       database: 'velorent'
     });
 
-<<<<<<< HEAD
     // Build query with optional status filter
     let query = `
       SELECT 
         v.id,
         v.name,
         v.model,
-=======
-    // Fetch vehicles with company information
-    console.log('Fetching vehicles...');
-    const [vehicles] = await connection.execute(`
-      SELECT 
-        v.id,
-        v.name,
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
         v.type,
         v.price_with_driver,
         v.price_without_driver,
         v.Owner,
         v.image_path,
         v.company_id,
-<<<<<<< HEAD
         v.status,
         v.year,
         v.color,
@@ -69,14 +56,6 @@ router.get('/', async (req, res) => {
 
     console.log('Fetching vehicles...');
     const [vehicles] = await connection.execute(query, params);
-=======
-        c.company_name
-      FROM vehicles v
-      LEFT JOIN companies c ON v.company_id = c.id
-      WHERE c.status = 'approved' OR c.status IS NULL
-      ORDER BY v.id
-    `);
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
 
     console.log('Raw vehicles fetched:', vehicles.length);
     
@@ -84,17 +63,13 @@ router.get('/', async (req, res) => {
     const transformedVehicles = vehicles.map(vehicle => ({
       id: vehicle.id,
       name: vehicle.name,
-<<<<<<< HEAD
       model: vehicle.model,
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
       type: vehicle.type,
       price_with_driver: vehicle.price_with_driver,
       price_without_driver: vehicle.price_without_driver,
       imageUrl: vehicle.image_path ? config.getS3Url(vehicle.image_path) : 'assets/images/vehicle-placeholder.svg',
       company_id: vehicle.company_id,
       company_name: vehicle.company_name || vehicle.Owner,
-<<<<<<< HEAD
       status: vehicle.status || 'available', // Default to available if not set
       year: vehicle.year,
       color: vehicle.color,
@@ -104,12 +79,6 @@ router.get('/', async (req, res) => {
       seaters: vehicle.seaters,
       capacity: vehicle.seaters || (vehicle.type === 'Van' ? '12' : vehicle.type === 'SUV' ? '7' : '5'),
       rating: 4.5 // Default rating
-=======
-      rating: 4.5, // Default rating
-      capacity: vehicle.type === 'Van' ? '12' : vehicle.type === 'SUV' ? '7' : '5',
-      color: ['White', 'Black', 'Silver', 'Blue', 'Red'][Math.floor(Math.random() * 5)],
-      mileage: Math.floor(Math.random() * 50000) + 10000
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
     }));
 
     console.log('Transformed vehicles:', transformedVehicles.length);
@@ -146,7 +115,6 @@ router.get('/:id/availability', async (req, res) => {
       database: 'velorent'
     });
 
-<<<<<<< HEAD
     // First, check vehicle status
     const [vehicles] = await connection.execute(
       'SELECT status FROM vehicles WHERE id = ?',
@@ -177,8 +145,6 @@ router.get('/:id/availability', async (req, res) => {
       });
     }
 
-=======
->>>>>>> d79fdae9773584f17057fcfe2ea772d18f29c547
     // Check for overlapping bookings with statuses that block new bookings
     const [conflicts] = await connection.execute(`
       SELECT id FROM bookings 
