@@ -2,17 +2,13 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
 const auth = require('../middleware/auth');
+const { createConnection } = require('../utils/db');
 
 // Get all requests for the current user
 router.get('/my-requests', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [requests] = await connection.execute(
       `SELECT r.*, 
@@ -68,12 +64,7 @@ router.get('/my-requests', auth.verifyToken, async (req, res) => {
 router.get('/:id', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [requests] = await connection.execute(
       `SELECT r.*, 
@@ -144,12 +135,7 @@ router.post('/', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'new_start_date and new_end_date are required for reschedule requests' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Verify booking belongs to user
     const [bookings] = await connection.execute(
@@ -303,12 +289,7 @@ router.post('/compute-fee', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'booking_id and request_type are required' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get booking
     const [bookings] = await connection.execute(
@@ -416,12 +397,7 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Status must be "approved" or "rejected"' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get the request
     const [requests] = await connection.execute(
@@ -524,12 +500,7 @@ router.put('/:id/approve', auth.verifyToken, async (req, res) => {
 router.delete('/:id', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get the request to verify it belongs to the user and is in a deletable state
     const [requests] = await connection.execute(
@@ -578,12 +549,7 @@ router.post('/delete-multiple', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'requestIds array is required' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Verify all requests belong to the user and are not pending
     const placeholders = requestIds.map(() => '?').join(',');

@@ -2,18 +2,14 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
 const config = require('../config');
+const { createConnection } = require('../utils/db');
 
 // Get all rental companies
 router.get('/', async (req, res) => {
   let connection;
   try {
     console.log('Connecting to database...');
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     console.log('Fetching companies...');
     const [rows] = await connection.execute(`
@@ -58,12 +54,7 @@ router.get('/', async (req, res) => {
 router.get('/:id/rules', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     console.log('Fetching company rules for company ID:', req.params.id);
     
@@ -104,12 +95,7 @@ router.get('/:id/rules', async (req, res) => {
 router.get('/:id/availability', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     console.log('Fetching company availability for company ID:', req.params.id);
     
@@ -158,12 +144,7 @@ router.post('/:id/check-availability', async (req, res) => {
       return res.status(400).json({ error: 'Date and time are required' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get the day of the week from the date
     const dateObj = new Date(date);
@@ -235,12 +216,7 @@ router.post('/:id/check-availability', async (req, res) => {
 router.get('/:id/drivers', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     console.log('Fetching drivers for company ID:', req.params.id);
     
@@ -285,12 +261,7 @@ router.get('/:id/drivers', async (req, res) => {
 router.get('/:id', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [rows] = await connection.execute(
       'SELECT * FROM companies WHERE id = ? AND status = "approved"',
@@ -332,12 +303,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/policies', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [rows] = await connection.execute(
       'SELECT * FROM company_policies WHERE company_id = ?',

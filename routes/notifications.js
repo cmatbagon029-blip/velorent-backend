@@ -2,17 +2,13 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
 const auth = require('../middleware/auth');
+const { createConnection } = require('../utils/db');
 
 // Get all notifications for the current user
 router.get('/my-notifications', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [notifications] = await connection.execute(
       `SELECT * FROM notifications 
@@ -40,12 +36,7 @@ router.get('/my-notifications', auth.verifyToken, async (req, res) => {
 router.get('/unread-count', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [result] = await connection.execute(
       'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND status = "unread"',
@@ -70,12 +61,7 @@ router.get('/unread-count', auth.verifyToken, async (req, res) => {
 router.put('/:id/read', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [result] = await connection.execute(
       'UPDATE notifications SET status = "read" WHERE id = ? AND user_id = ?',
@@ -104,12 +90,7 @@ router.put('/:id/read', auth.verifyToken, async (req, res) => {
 router.put('/mark-all-read', auth.verifyToken, async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     await connection.execute(
       'UPDATE notifications SET status = "read" WHERE user_id = ? AND status = "unread"',
