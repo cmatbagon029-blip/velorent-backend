@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2/promise');
 const config = require('../config');
+const { createConnection } = require('../utils/db');
 
 // Get all vehicles
 router.get('/', async (req, res) => {
@@ -9,12 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const { status } = req.query; // Optional status filter
     console.log('Connecting to database...');
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Build query with optional status filter
     let query = `
@@ -108,12 +104,7 @@ router.get('/:id/availability', async (req, res) => {
       return res.status(400).json({ error: 'Start date and end date are required' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // First, check vehicle status
     const [vehicles] = await connection.execute(
@@ -185,12 +176,7 @@ router.get('/:id/availability', async (req, res) => {
 router.get('/:id', async (req, res) => {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [vehicles] = await connection.execute(`
       SELECT 

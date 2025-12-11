@@ -5,17 +5,13 @@ const auth = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const { uploadImageToS3 } = require('../utils/s3Upload');
+const { createConnection } = require('../utils/db');
 
 // Test endpoint to check database connection and table structure
 router.get('/test-db', async function(req, res) {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Check if bookings table exists and show its structure
     const [tables] = await connection.execute("SHOW TABLES LIKE 'bookings'");
@@ -46,12 +42,7 @@ router.get('/test-db', async function(req, res) {
 router.get('/my-rentals', auth.verifyToken, async function(req, res) {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [rentals] = await connection.execute(
       `SELECT r.*, v.name as vehicle_name, v.imageUrl as vehicle_image, c.name as company_name 
@@ -81,12 +72,7 @@ router.get('/my-rentals', auth.verifyToken, async function(req, res) {
 router.get('/my-rentals/:id', auth.verifyToken, async function(req, res) {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [rentals] = await connection.execute(
       `SELECT r.*, v.name as vehicle_name, v.image_path as vehicle_image, c.name as company_name 
@@ -126,12 +112,7 @@ router.post('/', auth.verifyToken, upload.fields([
   console.log('Files:', req.files);
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get fields from req.body (multer parses them as strings)
     const {
@@ -291,12 +272,7 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
     console.log('User ID:', req.user?.userId);
     console.log('User object:', req.user);
     
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Get the booking to verify it belongs to the user and is cancelled
     const [bookings] = await connection.execute(
@@ -350,12 +326,7 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
 router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const [result] = await connection.execute(
       `UPDATE rentals 
@@ -392,12 +363,7 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
       return res.status(400).json({ error: 'bookingIds array is required' });
     }
 
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Verify all bookings belong to the user and are cancelled
     const placeholders = bookingIds.map(() => '?').join(',');
@@ -449,12 +415,7 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
 router.post('/bookings', async function(req, res) {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     const {
       user_name,
@@ -515,12 +476,7 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
     console.log('User ID from token:', req.user.userId);
     console.log('User object:', req.user);
     
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // First check if bookings table exists
     const [tables] = await connection.execute("SHOW TABLES LIKE 'bookings'");
@@ -689,12 +645,7 @@ router.put('/:id/mark-notification-read', auth.verifyToken, async function(req, 
     const bookingId = req.params.id;
     const userId = req.user.userId;
     
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Update notification_sent to 1 for this booking
     await connection.execute(
@@ -739,12 +690,7 @@ router.get('/test-db', async function(req, res) {
   let connection;
   try {
     console.log('=== DATABASE TEST ===');
-    connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'velorent'
-    });
+    connection = await createConnection();
 
     // Check if database exists
     const [databases] = await connection.execute("SHOW DATABASES LIKE 'velorent'");
