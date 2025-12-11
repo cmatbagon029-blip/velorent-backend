@@ -1,7 +1,7 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { createConnection } = require('../utils/db');
 const config = require('../config');
 const router = express.Router();
 
@@ -18,12 +18,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    connection = await mysql.createConnection({
-      host: config.DB_HOST,
-      user: config.DB_USER,
-      password: config.DB_PASS,
-      database: config.DB_NAME
-    });
+    connection = await createConnection();
 
     // Find user by email
     const [users] = await connection.execute(
@@ -58,13 +53,14 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || config.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email,
         role: user.role 
       },
-      'your-secret-key', // Replace with your actual secret key
+      jwtSecret,
       { expiresIn: '24h' }
     );
 
@@ -112,12 +108,7 @@ router.post('/social-login', async (req, res) => {
       });
     }
 
-    connection = await mysql.createConnection({
-      host: config.DB_HOST,
-      user: config.DB_USER,
-      password: config.DB_PASS,
-      database: config.DB_NAME
-    });
+    connection = await createConnection();
 
     // Check if user exists with this social ID
     const [existingUsers] = await connection.execute(
@@ -178,13 +169,14 @@ router.post('/social-login', async (req, res) => {
     }
 
     // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || config.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email,
         provider: user.provider 
       },
-      'your-secret-key', // Replace with your actual secret key
+      jwtSecret,
       { expiresIn: '24h' }
     );
 
