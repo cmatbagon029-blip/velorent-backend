@@ -33,3 +33,4 @@ SELECT 'activity_logs table deleted successfully' as result;
 
 
 
+
