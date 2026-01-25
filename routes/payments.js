@@ -35,8 +35,8 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     // PayMongo QR Ph minimum amount is 1 PHP (100 centavos)
     if (amount < 1) {
       return res.status(400).json({
-        error: 'Amount must be at least ₱1.00 for QR Ph payments',
-        details: 'PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions'
+        error: 'Minimum payment amount for QR Ph is ₱1.00',
+        details: 'The amount must be at least 1 PHP (100 centavos)'
       });
     }
 
@@ -58,11 +58,11 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     const amountInCentavos = Math.round(amount * 100);
 
-    // Double-check minimum amount in centavos (PayMongo requirement)
+    // PayMongo requires minimum 100 centavos (1 PHP) for QR Ph payments
     if (amountInCentavos < 100) {
       return res.status(400).json({
-        error: 'Amount must be at least ₱1.00 for QR Ph payments',
-        details: 'PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions'
+        error: 'Minimum payment amount for QR Ph is ₱1.00',
+        details: `The amount ${amount} PHP (${amountInCentavos} centavos) is below the minimum of 1 PHP (100 centavos) required by PayMongo for QR Ph payments`
       });
     }
 
@@ -204,29 +204,37 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     console.error('Error response data:', JSON.stringify(error.response?.data, null, 2));
 
     let errorDetails = error.message;
-    let isValidationError = false;
+    let userFriendlyMessage = 'Failed to create QRPH payment';
     
+    // Check for PayMongo-specific errors
     if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
       errorDetails = error.response.data.errors.map(e => e.detail || e.message || JSON.stringify(e)).join('; ');
       
-      // Check if it's a minimum amount error
-      const errorString = JSON.stringify(error.response.data.errors).toLowerCase();
-      if (errorString.includes('amount') && (errorString.includes('less than 100') || errorString.includes('minimum'))) {
-        errorDetails = 'Amount must be at least ₱1.00 for QR Ph payments. PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions.';
-        isValidationError = true;
+      // Check for minimum amount error
+      const amountError = error.response.data.errors.find(e => 
+        (e.detail && e.detail.toLowerCase().includes('amount') && e.detail.toLowerCase().includes('less than 100')) ||
+        (e.message && e.message.toLowerCase().includes('amount') && e.message.toLowerCase().includes('less than 100'))
+      );
+      
+      if (amountError) {
+        userFriendlyMessage = 'Minimum payment amount for QR Ph is ₱1.00';
+        errorDetails = 'The amount must be at least 1 PHP (100 centavos) as required by PayMongo for QR Ph payments';
       }
     } else if (error.response?.data?.message) {
       errorDetails = error.response.data.message;
+      
+      // Check if it's an amount-related error
       if (errorDetails.toLowerCase().includes('amount') && errorDetails.toLowerCase().includes('less than 100')) {
-        errorDetails = 'Amount must be at least ₱1.00 for QR Ph payments. PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions.';
-        isValidationError = true;
+        userFriendlyMessage = 'Minimum payment amount for QR Ph is ₱1.00';
+        errorDetails = 'The amount must be at least 1 PHP (100 centavos) as required by PayMongo for QR Ph payments';
       }
     }
 
-    // Return 400 for validation errors, 500 for server errors
-    const statusCode = isValidationError ? 400 : 500;
+    // Return 400 for validation errors, 500 for other errors
+    const statusCode = (userFriendlyMessage.includes('Minimum payment amount')) ? 400 : 500;
+
     res.status(statusCode).json({
-      error: isValidationError ? 'Invalid payment amount' : 'Failed to create QRPH payment',
+      error: userFriendlyMessage,
       details: errorDetails
     });
   } finally {
