@@ -70,6 +70,7 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     console.log('Amount (PHP):', amount);
     console.log('Amount (centavos):', amountInCentavos);
     console.log('Booking ID:', booking_id);
+    console.log('PayMongo Mode:', config.PAYMONGO_SECRET_KEY?.startsWith('sk_live_') ? 'LIVE (PRODUCTION)' : config.PAYMONGO_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'UNKNOWN');
 
     const authHeader = `Basic ${Buffer.from(config.PAYMONGO_SECRET_KEY + ':').toString('base64')}`;
 
@@ -277,6 +278,7 @@ router.post('/create-payment', auth.verifyToken, async (req, res) => {
     console.log('Amount (PHP):', amount);
     console.log('Amount (centavos):', amountInCentavos);
     console.log('Booking ID:', booking_id);
+    console.log('PayMongo Mode:', config.PAYMONGO_SECRET_KEY?.startsWith('sk_live_') ? 'LIVE (PRODUCTION)' : config.PAYMONGO_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'UNKNOWN');
     console.log('PayMongo Secret Key (first 10 chars):', config.PAYMONGO_SECRET_KEY?.substring(0, 10) + '...');
 
     // Create checkout session with PayMongo (for GCash payments)

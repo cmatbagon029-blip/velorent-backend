@@ -1,30 +1,23 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../config.env') });
+const config = require('../config');
 
-// Load from config.env
-let envConfig = {};
-try {
-  const envFile = fs.readFileSync(path.join(__dirname, '../config.env'), 'utf8');
-  envFile.split('\n').forEach(line => {
-    const trimmedLine = line.trim();
-    if (trimmedLine && !trimmedLine.startsWith('#')) {
-      const [key, ...valueParts] = trimmedLine.split('=');
-      if (key && valueParts.length > 0) {
-        envConfig[key.trim()] = valueParts.join('=').trim();
-      }
-    }
-  });
-} catch (error) {
-  console.log('config.env not found, using process.env');
+// Get AWS credentials from config (which loads from config.env via dotenv)
+// Also check process.env as fallback for environment variables set directly
+const S3_REGION = process.env.S3_REGION || config.S3_REGION || 'ap-southeast-2';
+const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || config.S3_ACCESS_KEY;
+const S3_SECRET_KEY = process.env.S3_SECRET_KEY || config.S3_SECRET_KEY;
+const S3_BUCKET = process.env.S3_BUCKET || config.S3_BUCKET || 'velorent-company-files';
+
+// Debug logging (only in development)
+if (process.env.DEBUG_MODE === 'true' || config.DEBUG_MODE) {
+  console.log('S3 Configuration loaded:');
+  console.log('  S3_REGION:', S3_REGION);
+  console.log('  S3_BUCKET:', S3_BUCKET);
+  console.log('  S3_ACCESS_KEY:', S3_ACCESS_KEY ? `${S3_ACCESS_KEY.substring(0, 8)}...` : 'NOT SET');
+  console.log('  S3_SECRET_KEY:', S3_SECRET_KEY ? 'SET' : 'NOT SET');
 }
-
-// Get AWS credentials from config.env or process.env
-const S3_REGION = envConfig.S3_REGION || process.env.S3_REGION || 'ap-southeast-2';
-const S3_ACCESS_KEY = envConfig.S3_ACCESS_KEY || process.env.S3_ACCESS_KEY;
-const S3_SECRET_KEY = envConfig.S3_SECRET_KEY || process.env.S3_SECRET_KEY;
-const S3_BUCKET = envConfig.S3_BUCKET || process.env.S3_BUCKET || 'velorent-company-files';
 
 // Configure AWS S3 (will be initialized per request to use latest credentials)
 function getS3Client() {
