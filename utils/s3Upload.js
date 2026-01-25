@@ -10,13 +10,17 @@ const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || config.S3_ACCESS_KEY;
 const S3_SECRET_KEY = process.env.S3_SECRET_KEY || config.S3_SECRET_KEY;
 const S3_BUCKET = process.env.S3_BUCKET || config.S3_BUCKET || 'velorent-company-files';
 
-// Debug logging (only in development)
-if (process.env.DEBUG_MODE === 'true' || config.DEBUG_MODE) {
-  console.log('S3 Configuration loaded:');
+// Debug logging (always log on Render, or when DEBUG_MODE is enabled)
+const isRender = process.env.RENDER || process.env.RENDER_SERVICE_NAME;
+if (isRender || process.env.DEBUG_MODE === 'true' || config.DEBUG_MODE) {
+  console.log('=== S3 Configuration Check ===');
+  console.log('Environment:', isRender ? 'Render (Production)' : 'Local');
   console.log('  S3_REGION:', S3_REGION);
   console.log('  S3_BUCKET:', S3_BUCKET);
   console.log('  S3_ACCESS_KEY:', S3_ACCESS_KEY ? `${S3_ACCESS_KEY.substring(0, 8)}...` : 'NOT SET');
   console.log('  S3_SECRET_KEY:', S3_SECRET_KEY ? 'SET' : 'NOT SET');
+  console.log('  From process.env.S3_ACCESS_KEY:', process.env.S3_ACCESS_KEY ? 'YES' : 'NO');
+  console.log('  From config.S3_ACCESS_KEY:', config.S3_ACCESS_KEY ? 'YES' : 'NO');
 }
 
 // Configure AWS S3 (will be initialized per request to use latest credentials)
@@ -48,9 +52,26 @@ async function uploadImageToS3(file, folder = 'uploads', customName = null) {
 
     // Check if AWS credentials are configured
     if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET) {
+      console.error('=== S3 CONFIGURATION ERROR ===');
+      console.error('S3_ACCESS_KEY:', S3_ACCESS_KEY ? 'SET' : 'NOT SET');
+      console.error('S3_SECRET_KEY:', S3_SECRET_KEY ? 'SET' : 'NOT SET');
+      console.error('S3_BUCKET:', S3_BUCKET || 'NOT SET');
+      console.error('Environment check:');
+      console.error('  process.env.S3_ACCESS_KEY:', process.env.S3_ACCESS_KEY ? 'SET' : 'NOT SET');
+      console.error('  process.env.S3_SECRET_KEY:', process.env.S3_SECRET_KEY ? 'SET' : 'NOT SET');
+      console.error('  process.env.S3_BUCKET:', process.env.S3_BUCKET || 'NOT SET');
+      console.error('  config.S3_ACCESS_KEY:', config.S3_ACCESS_KEY ? 'SET' : 'NOT SET');
+      console.error('  config.S3_SECRET_KEY:', config.S3_SECRET_KEY ? 'SET' : 'NOT SET');
+      console.error('  config.S3_BUCKET:', config.S3_BUCKET || 'NOT SET');
+      
+      const isRender = process.env.RENDER || process.env.RENDER_SERVICE_NAME;
+      const envHint = isRender 
+        ? 'Set these as environment variables in your Render dashboard (Settings → Environment)'
+        : 'Set these in your config.env file or as environment variables';
+      
       return {
         success: false,
-        message: 'AWS S3 credentials not configured. Please set S3_ACCESS_KEY, S3_SECRET_KEY, and S3_BUCKET in config.env'
+        message: `AWS S3 credentials not configured. ${envHint}. Required: S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET`
       };
     }
 
