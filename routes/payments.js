@@ -32,11 +32,11 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
       });
     }
 
-    // PayMongo requires minimum 100 centavos (1 PHP)
+    // PayMongo QR Ph minimum amount is 1 PHP (100 centavos)
     if (amount < 1) {
       return res.status(400).json({
-        error: 'Minimum payment amount is ₱1.00',
-        details: 'PayMongo requires a minimum payment of 100 centavos (1 PHP peso)'
+        error: 'Amount must be at least ₱1.00 for QR Ph payments',
+        details: 'PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions'
       });
     }
 
@@ -58,11 +58,11 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     const amountInCentavos = Math.round(amount * 100);
 
-    // Double-check minimum after conversion (should be at least 100 centavos)
+    // Double-check minimum amount in centavos (PayMongo requirement)
     if (amountInCentavos < 100) {
       return res.status(400).json({
-        error: 'Minimum payment amount is ₱1.00',
-        details: `Amount ${amount} PHP converts to ${amountInCentavos} centavos, but PayMongo requires at least 100 centavos (1 PHP)`
+        error: 'Amount must be at least ₱1.00 for QR Ph payments',
+        details: 'PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions'
       });
     }
 
@@ -70,7 +70,6 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     console.log('Amount (PHP):', amount);
     console.log('Amount (centavos):', amountInCentavos);
     console.log('Booking ID:', booking_id);
-    console.log('PayMongo Mode:', config.PAYMONGO_SECRET_KEY?.startsWith('sk_live_') ? 'LIVE (PRODUCTION)' : config.PAYMONGO_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'UNKNOWN');
 
     const authHeader = `Basic ${Buffer.from(config.PAYMONGO_SECRET_KEY + ':').toString('base64')}`;
 
@@ -205,14 +204,29 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
     console.error('Error response data:', JSON.stringify(error.response?.data, null, 2));
 
     let errorDetails = error.message;
+    let isValidationError = false;
+    
     if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
       errorDetails = error.response.data.errors.map(e => e.detail || e.message || JSON.stringify(e)).join('; ');
+      
+      // Check if it's a minimum amount error
+      const errorString = JSON.stringify(error.response.data.errors).toLowerCase();
+      if (errorString.includes('amount') && (errorString.includes('less than 100') || errorString.includes('minimum'))) {
+        errorDetails = 'Amount must be at least ₱1.00 for QR Ph payments. PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions.';
+        isValidationError = true;
+      }
     } else if (error.response?.data?.message) {
       errorDetails = error.response.data.message;
+      if (errorDetails.toLowerCase().includes('amount') && errorDetails.toLowerCase().includes('less than 100')) {
+        errorDetails = 'Amount must be at least ₱1.00 for QR Ph payments. PayMongo requires a minimum of 100 centavos (1 PHP) for QR Ph transactions.';
+        isValidationError = true;
+      }
     }
 
-    res.status(500).json({
-      error: 'Failed to create QRPH payment',
+    // Return 400 for validation errors, 500 for server errors
+    const statusCode = isValidationError ? 400 : 500;
+    res.status(statusCode).json({
+      error: isValidationError ? 'Invalid payment amount' : 'Failed to create QRPH payment',
       details: errorDetails
     });
   } finally {
@@ -232,14 +246,6 @@ router.post('/create-payment', auth.verifyToken, async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({ 
         error: 'Amount is required and must be greater than 0' 
-      });
-    }
-
-    // PayMongo requires minimum 100 centavos (1 PHP)
-    if (amount < 1) {
-      return res.status(400).json({
-        error: 'Minimum payment amount is ₱1.00',
-        details: 'PayMongo requires a minimum payment of 100 centavos (1 PHP peso)'
       });
     }
 
@@ -266,19 +272,10 @@ router.post('/create-payment', auth.verifyToken, async (req, res) => {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     const amountInCentavos = Math.round(amount * 100);
 
-    // Double-check minimum after conversion (should be at least 100 centavos)
-    if (amountInCentavos < 100) {
-      return res.status(400).json({
-        error: 'Minimum payment amount is ₱1.00',
-        details: `Amount ${amount} PHP converts to ${amountInCentavos} centavos, but PayMongo requires at least 100 centavos (1 PHP)`
-      });
-    }
-
     console.log('=== CREATING PAYMONGO CHECKOUT SESSION ===');
     console.log('Amount (PHP):', amount);
     console.log('Amount (centavos):', amountInCentavos);
     console.log('Booking ID:', booking_id);
-    console.log('PayMongo Mode:', config.PAYMONGO_SECRET_KEY?.startsWith('sk_live_') ? 'LIVE (PRODUCTION)' : config.PAYMONGO_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'UNKNOWN');
     console.log('PayMongo Secret Key (first 10 chars):', config.PAYMONGO_SECRET_KEY?.substring(0, 10) + '...');
 
     // Create checkout session with PayMongo (for GCash payments)

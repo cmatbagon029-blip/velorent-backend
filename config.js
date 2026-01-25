@@ -5,8 +5,6 @@ module.exports = {
   S3_BASE_URL: process.env.S3_BASE_URL || 'https://velorent-company-files.s3.ap-southeast-2.amazonaws.com',
   S3_BUCKET: process.env.S3_BUCKET || 'velorent-company-files',
   S3_REGION: process.env.S3_REGION || 'ap-southeast-2',
-  S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
-  S3_SECRET_KEY: process.env.S3_SECRET_KEY,
   
   // Database Configuration
   DB_HOST: process.env.DB_HOST || 'localhost',

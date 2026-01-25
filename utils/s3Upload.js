@@ -1,27 +1,30 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config');
+require('dotenv').config({ path: path.join(__dirname, '../config.env') });
 
-// Get AWS credentials from config (which loads from config.env via dotenv)
-// Also check process.env as fallback for environment variables set directly
-const S3_REGION = process.env.S3_REGION || config.S3_REGION || 'ap-southeast-2';
-const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || config.S3_ACCESS_KEY;
-const S3_SECRET_KEY = process.env.S3_SECRET_KEY || config.S3_SECRET_KEY;
-const S3_BUCKET = process.env.S3_BUCKET || config.S3_BUCKET || 'velorent-company-files';
-
-// Debug logging (always log on Render, or when DEBUG_MODE is enabled)
-const isRender = process.env.RENDER || process.env.RENDER_SERVICE_NAME;
-if (isRender || process.env.DEBUG_MODE === 'true' || config.DEBUG_MODE) {
-  console.log('=== S3 Configuration Check ===');
-  console.log('Environment:', isRender ? 'Render (Production)' : 'Local');
-  console.log('  S3_REGION:', S3_REGION);
-  console.log('  S3_BUCKET:', S3_BUCKET);
-  console.log('  S3_ACCESS_KEY:', S3_ACCESS_KEY ? `${S3_ACCESS_KEY.substring(0, 8)}...` : 'NOT SET');
-  console.log('  S3_SECRET_KEY:', S3_SECRET_KEY ? 'SET' : 'NOT SET');
-  console.log('  From process.env.S3_ACCESS_KEY:', process.env.S3_ACCESS_KEY ? 'YES' : 'NO');
-  console.log('  From config.S3_ACCESS_KEY:', config.S3_ACCESS_KEY ? 'YES' : 'NO');
+// Load from config.env
+let envConfig = {};
+try {
+  const envFile = fs.readFileSync(path.join(__dirname, '../config.env'), 'utf8');
+  envFile.split('\n').forEach(line => {
+    const trimmedLine = line.trim();
+    if (trimmedLine && !trimmedLine.startsWith('#')) {
+      const [key, ...valueParts] = trimmedLine.split('=');
+      if (key && valueParts.length > 0) {
+        envConfig[key.trim()] = valueParts.join('=').trim();
+      }
+    }
+  });
+} catch (error) {
+  console.log('config.env not found, using process.env');
 }
+
+// Get AWS credentials from config.env or process.env
+const S3_REGION = envConfig.S3_REGION || process.env.S3_REGION || 'ap-southeast-2';
+const S3_ACCESS_KEY = envConfig.S3_ACCESS_KEY || process.env.S3_ACCESS_KEY;
+const S3_SECRET_KEY = envConfig.S3_SECRET_KEY || process.env.S3_SECRET_KEY;
+const S3_BUCKET = envConfig.S3_BUCKET || process.env.S3_BUCKET || 'velorent-company-files';
 
 // Configure AWS S3 (will be initialized per request to use latest credentials)
 function getS3Client() {
@@ -52,26 +55,9 @@ async function uploadImageToS3(file, folder = 'uploads', customName = null) {
 
     // Check if AWS credentials are configured
     if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET) {
-      console.error('=== S3 CONFIGURATION ERROR ===');
-      console.error('S3_ACCESS_KEY:', S3_ACCESS_KEY ? 'SET' : 'NOT SET');
-      console.error('S3_SECRET_KEY:', S3_SECRET_KEY ? 'SET' : 'NOT SET');
-      console.error('S3_BUCKET:', S3_BUCKET || 'NOT SET');
-      console.error('Environment check:');
-      console.error('  process.env.S3_ACCESS_KEY:', process.env.S3_ACCESS_KEY ? 'SET' : 'NOT SET');
-      console.error('  process.env.S3_SECRET_KEY:', process.env.S3_SECRET_KEY ? 'SET' : 'NOT SET');
-      console.error('  process.env.S3_BUCKET:', process.env.S3_BUCKET || 'NOT SET');
-      console.error('  config.S3_ACCESS_KEY:', config.S3_ACCESS_KEY ? 'SET' : 'NOT SET');
-      console.error('  config.S3_SECRET_KEY:', config.S3_SECRET_KEY ? 'SET' : 'NOT SET');
-      console.error('  config.S3_BUCKET:', config.S3_BUCKET || 'NOT SET');
-      
-      const isRender = process.env.RENDER || process.env.RENDER_SERVICE_NAME;
-      const envHint = isRender 
-        ? 'Set these as environment variables in your Render dashboard (Settings → Environment)'
-        : 'Set these in your config.env file or as environment variables';
-      
       return {
         success: false,
-        message: `AWS S3 credentials not configured. ${envHint}. Required: S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET`
+        message: 'AWS S3 credentials not configured. Please set S3_ACCESS_KEY, S3_SECRET_KEY, and S3_BUCKET in config.env'
       };
     }
 
