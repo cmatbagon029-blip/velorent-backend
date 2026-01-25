@@ -32,6 +32,14 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
       });
     }
 
+    // PayMongo requires minimum 100 centavos (1 PHP)
+    if (amount < 1) {
+      return res.status(400).json({
+        error: 'Minimum payment amount is ₱1.00',
+        details: 'PayMongo requires a minimum payment of 100 centavos (1 PHP peso)'
+      });
+    }
+
     if (!booking_id) {
       return res.status(400).json({
         error: 'booking_id is required'
@@ -49,6 +57,14 @@ router.post('/qrph', auth.verifyToken, async (req, res) => {
 
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     const amountInCentavos = Math.round(amount * 100);
+
+    // Double-check minimum after conversion (should be at least 100 centavos)
+    if (amountInCentavos < 100) {
+      return res.status(400).json({
+        error: 'Minimum payment amount is ₱1.00',
+        details: `Amount ${amount} PHP converts to ${amountInCentavos} centavos, but PayMongo requires at least 100 centavos (1 PHP)`
+      });
+    }
 
     console.log('=== CREATING PAYMONGO QRPH PAYMENT INTENT ===');
     console.log('Amount (PHP):', amount);
@@ -218,6 +234,14 @@ router.post('/create-payment', auth.verifyToken, async (req, res) => {
       });
     }
 
+    // PayMongo requires minimum 100 centavos (1 PHP)
+    if (amount < 1) {
+      return res.status(400).json({
+        error: 'Minimum payment amount is ₱1.00',
+        details: 'PayMongo requires a minimum payment of 100 centavos (1 PHP peso)'
+      });
+    }
+
     if (!booking_id) {
       return res.status(400).json({ 
         error: 'booking_id is required' 
@@ -240,6 +264,14 @@ router.post('/create-payment', auth.verifyToken, async (req, res) => {
 
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     const amountInCentavos = Math.round(amount * 100);
+
+    // Double-check minimum after conversion (should be at least 100 centavos)
+    if (amountInCentavos < 100) {
+      return res.status(400).json({
+        error: 'Minimum payment amount is ₱1.00',
+        details: `Amount ${amount} PHP converts to ${amountInCentavos} centavos, but PayMongo requires at least 100 centavos (1 PHP)`
+      });
+    }
 
     console.log('=== CREATING PAYMONGO CHECKOUT SESSION ===');
     console.log('Amount (PHP):', amount);
