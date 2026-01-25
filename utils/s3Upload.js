@@ -9,22 +9,38 @@ try {
   const envFile = fs.readFileSync(path.join(__dirname, '../config.env'), 'utf8');
   envFile.split('\n').forEach(line => {
     const trimmedLine = line.trim();
-    if (trimmedLine && !trimmedLine.startsWith('#')) {
-      const [key, ...valueParts] = trimmedLine.split('=');
-      if (key && valueParts.length > 0) {
-        envConfig[key.trim()] = valueParts.join('=').trim();
+    // Skip empty lines, comments, and lines that don't contain '='
+    if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex > 0) {
+        const key = trimmedLine.substring(0, equalIndex).trim();
+        const value = trimmedLine.substring(equalIndex + 1).trim();
+        // Only add if key is valid (alphanumeric and underscores)
+        if (key && /^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+          envConfig[key] = value;
+        }
       }
     }
   });
 } catch (error) {
-  console.log('config.env not found, using process.env');
+  console.log('config.env not found or error reading it, using process.env:', error.message);
 }
 
-// Get AWS credentials from config.env or process.env
-const S3_REGION = envConfig.S3_REGION || process.env.S3_REGION || 'ap-southeast-2';
-const S3_ACCESS_KEY = envConfig.S3_ACCESS_KEY || process.env.S3_ACCESS_KEY;
-const S3_SECRET_KEY = envConfig.S3_SECRET_KEY || process.env.S3_SECRET_KEY;
-const S3_BUCKET = envConfig.S3_BUCKET || process.env.S3_BUCKET || 'velorent-company-files';
+// Get AWS credentials from process.env (populated by dotenv) or fallback to manual parsing
+// Prioritize process.env since dotenv is more reliable
+const S3_REGION = process.env.S3_REGION || envConfig.S3_REGION || 'ap-southeast-2';
+const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || envConfig.S3_ACCESS_KEY;
+const S3_SECRET_KEY = process.env.S3_SECRET_KEY || envConfig.S3_SECRET_KEY;
+const S3_BUCKET = process.env.S3_BUCKET || envConfig.S3_BUCKET || 'velorent-company-files';
+
+// Debug logging (only in development)
+if (process.env.DEBUG_MODE === 'true') {
+  console.log('S3 Configuration check:');
+  console.log('  S3_REGION:', S3_REGION ? '✓' : '✗');
+  console.log('  S3_ACCESS_KEY:', S3_ACCESS_KEY ? '✓ (length: ' + S3_ACCESS_KEY.length + ')' : '✗');
+  console.log('  S3_SECRET_KEY:', S3_SECRET_KEY ? '✓ (length: ' + S3_SECRET_KEY.length + ')' : '✗');
+  console.log('  S3_BUCKET:', S3_BUCKET ? '✓ (' + S3_BUCKET + ')' : '✗');
+}
 
 // Configure AWS S3 (will be initialized per request to use latest credentials)
 function getS3Client() {
