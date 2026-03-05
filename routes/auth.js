@@ -55,10 +55,10 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || config.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        role: user.role 
+        role: user.role
       },
       jwtSecret,
       { expiresIn: '24h' }
@@ -94,6 +94,82 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Register endpoint (added to fix 404)
+router.post('/register', async (req, res) => {
+  let connection;
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    connection = await createConnection();
+
+    // Check if user already exists
+    const [existingUsers] = await connection.execute(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email address is already registered'
+      });
+    }
+
+    // Hash the password securely
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Insert new user into database
+    const [result] = await connection.execute(
+      'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      [name, email, hashedPassword, 'client']
+    );
+
+    // Generate JWT token automatically on successful signup
+    const jwtSecret = process.env.JWT_SECRET || config.JWT_SECRET || 'your-secret-key';
+    const token = jwt.sign(
+      {
+        userId: result.insertId,
+        email: email,
+        role: 'client'
+      },
+      jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Registration successful',
+      token,
+      user: {
+        id: result.insertId,
+        name,
+        email,
+        role: 'client'
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during registration',
+      error: error.message
+    });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
 // Social login endpoint
 router.post('/social-login', async (req, res) => {
   let connection;
@@ -102,7 +178,7 @@ router.post('/social-login', async (req, res) => {
 
     // Validate required fields
     if (!provider || !socialId || !email || !name) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: 'Missing required social login information'
       });
@@ -121,12 +197,12 @@ router.post('/social-login', async (req, res) => {
     if (existingUsers.length > 0) {
       // User exists, update their information
       user = existingUsers[0];
-      
+
       await connection.execute(
         'UPDATE users SET name = ?, email = ?, picture = ?, updated_at = NOW() WHERE id = ?',
         [name, email, picture, user.id]
       );
-      
+
       // Update user object with new data
       user.name = name;
       user.email = email;
@@ -154,7 +230,7 @@ router.post('/social-login', async (req, res) => {
           'INSERT INTO users (name, email, social_id, provider, picture, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
           [name, email, socialId, provider, picture]
         );
-        
+
         user = {
           id: result.insertId,
           name,
@@ -171,10 +247,10 @@ router.post('/social-login', async (req, res) => {
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || config.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        provider: user.provider 
+        provider: user.provider
       },
       jwtSecret,
       { expiresIn: '24h' }
@@ -182,9 +258,9 @@ router.post('/social-login', async (req, res) => {
 
     // Remove sensitive information
     const userResponse = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+      id: user.id,
+      name: user.name,
+      email: user.email,
       picture: user.picture,
       provider: user.provider,
       created_at: user.created_at
@@ -199,7 +275,7 @@ router.post('/social-login', async (req, res) => {
 
   } catch (error) {
     console.error('Social login error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Internal server error during social login',
       error: error.message
