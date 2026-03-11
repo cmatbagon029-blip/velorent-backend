@@ -8,7 +8,7 @@ const { uploadImageToS3 } = require('../utils/s3Upload');
 const { createConnection } = require('../utils/db');
 
 // Test endpoint to check database connection and table structure
-router.get('/test-db', async function(req, res) {
+router.get('/test-db', async function (req, res) {
   let connection;
   try {
     connection = await createConnection();
@@ -20,16 +20,16 @@ router.get('/test-db', async function(req, res) {
     }
 
     const [columns] = await connection.execute("DESCRIBE bookings");
-    res.json({ 
+    res.json({
       message: 'Database connection successful',
       bookingsTableExists: true,
       columns: columns
     });
   } catch (error) {
     console.error('Database test error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Database connection failed',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -39,7 +39,7 @@ router.get('/test-db', async function(req, res) {
 });
 
 // Get user's rentals
-router.get('/my-rentals', auth.verifyToken, async function(req, res) {
+router.get('/my-rentals', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     connection = await createConnection();
@@ -57,9 +57,9 @@ router.get('/my-rentals', auth.verifyToken, async function(req, res) {
     res.json(rentals);
   } catch (error) {
     console.error('Error fetching rentals:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch rentals',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -69,7 +69,7 @@ router.get('/my-rentals', auth.verifyToken, async function(req, res) {
 });
 
 // Get rental by ID
-router.get('/my-rentals/:id', auth.verifyToken, async function(req, res) {
+router.get('/my-rentals/:id', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     connection = await createConnection();
@@ -80,7 +80,7 @@ router.get('/my-rentals/:id', auth.verifyToken, async function(req, res) {
        LEFT JOIN vehicles v ON r.vehicleId = v.id 
        LEFT JOIN rental_companies c ON r.companyId = c.id 
        WHERE r.id = ? AND r.userId = ?`,
-      [req.params.id, req.user.id]
+      [req.params.id, req.user.userId]
     );
 
     if (rentals.length === 0) {
@@ -90,9 +90,9 @@ router.get('/my-rentals/:id', auth.verifyToken, async function(req, res) {
     res.json(rentals[0]);
   } catch (error) {
     console.error('Error fetching rental:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch rental',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -105,7 +105,7 @@ router.get('/my-rentals/:id', auth.verifyToken, async function(req, res) {
 router.post('/', auth.verifyToken, upload.fields([
   { name: 'validId', maxCount: 1 },
   { name: 'additionalId', maxCount: 1 }
-]), async function(req, res) {
+]), async function (req, res) {
   console.log('=== BOOKING REQUEST DEBUG ===');
   console.log('User:', req.user);
   console.log('Body:', req.body);
@@ -150,10 +150,10 @@ router.post('/', auth.verifyToken, upload.fields([
     );
     const totalRentals = totalBookings[0].total;
     console.log('Total rentals for user:', totalRentals);
-    
+
     if (totalRentals >= 3) {
-      return res.status(400).json({ 
-        error: 'You have reached the maximum limit of 3 rentals. Please contact support if you need to make additional bookings.' 
+      return res.status(400).json({
+        error: 'You have reached the maximum limit of 3 rentals. Please contact support if you need to make additional bookings.'
       });
     }
 
@@ -201,11 +201,15 @@ router.post('/', auth.verifyToken, upload.fields([
       }
     }
 
-    // Insert into bookings table (now with user_id, start_date, end_date, company_id, company_name, payment info, and driver info)
+    // Insert into bookings table (now with cost, payment info, and driver info)
     const [result] = await connection.execute(
       `INSERT INTO bookings (
-        user_id, user_name, mobile_number, vehicle_id, company_id, company_name, vehicle_name, service_type, start_date, end_date, rent_time, destination, occasion, message, valid_id_path, additional_id_path, booking_date, status, driver_id, driver_name, driver_phone, driver_experience
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+        user_id, user_name, mobile_number, vehicle_id, company_id, company_name, vehicle_name, 
+        service_type, start_date, end_date, rent_time, destination, occasion, message, 
+        valid_id_path, additional_id_path, booking_date, status, 
+        total_cost, down_payment, remaining_amount, payment_method,
+        driver_id, driver_name, driver_phone, driver_experience
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         req.user.userId,
         fullName,
@@ -225,6 +229,10 @@ router.post('/', auth.verifyToken, upload.fields([
         additionalIdPath,
         new Date(),
         'Pending',
+        totalCost || 0,
+        downPayment || 0,
+        remainingAmount || 0,
+        paymentMethod || 'PayMongo',
         driverId || null,
         driverName || null,
         driverPhone || null,
@@ -238,7 +246,7 @@ router.post('/', auth.verifyToken, upload.fields([
     console.log('Booking ID (insertId):', bookingId);
     console.log('Result object:', JSON.stringify(result, null, 2));
 
-    const response = { 
+    const response = {
       message: 'Booking created',
       booking_id: bookingId,
       id: bookingId
@@ -251,7 +259,7 @@ router.post('/', auth.verifyToken, upload.fields([
     console.error('=== BOOKING ERROR DEBUG ===');
     console.error('Error creating booking:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create booking',
       details: error.message,
       stack: error.stack
@@ -264,14 +272,14 @@ router.post('/', auth.verifyToken, upload.fields([
 });
 
 // Delete a cancelled booking (placed early to avoid route conflicts)
-router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
+router.delete('/bookings/:id', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     console.log('=== DELETE BOOKING REQUEST ===');
     console.log('Booking ID:', req.params.id);
     console.log('User ID:', req.user?.userId);
     console.log('User object:', req.user);
-    
+
     connection = await createConnection();
 
     // Get the booking to verify it belongs to the user and is cancelled
@@ -293,7 +301,7 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
 
     // Only allow deletion of cancelled bookings
     if (booking.status !== 'Cancelled') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Only cancelled bookings can be deleted',
         currentStatus: booking.status
       });
@@ -311,9 +319,9 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
   } catch (error) {
     console.error('Error deleting booking:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete booking',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -323,7 +331,7 @@ router.delete('/bookings/:id', auth.verifyToken, async function(req, res) {
 });
 
 // Cancel rental
-router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
+router.post('/:id/cancel', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     connection = await createConnection();
@@ -332,7 +340,7 @@ router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
       `UPDATE rentals 
        SET status = 'cancelled' 
        WHERE id = ? AND userId = ? AND status = 'pending'`,
-      [req.params.id, req.user.id]
+      [req.params.id, req.user.userId]
     );
 
     if (result.affectedRows === 0) {
@@ -342,9 +350,9 @@ router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
     res.json({ message: 'Rental cancelled successfully' });
   } catch (error) {
     console.error('Error cancelling rental:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to cancel rental',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -354,7 +362,7 @@ router.post('/:id/cancel', auth.verifyToken, async function(req, res) {
 });
 
 // Delete multiple cancelled bookings
-router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, res) {
+router.post('/bookings/delete-multiple', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     const { bookingIds } = req.body;
@@ -380,7 +388,7 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
     // Check for non-cancelled bookings
     const nonCancelled = bookings.filter(b => b.status !== 'Cancelled');
     if (nonCancelled.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Only cancelled bookings can be deleted',
         invalidIds: nonCancelled.map(b => ({ id: b.id, status: b.status }))
       });
@@ -394,15 +402,15 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
       validIds
     );
 
-    res.json({ 
+    res.json({
       message: `${validIds.length} booking(s) deleted successfully`,
       deletedCount: validIds.length
     });
   } catch (error) {
     console.error('Error deleting bookings:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete bookings',
-      details: error.message 
+      details: error.message
     });
   } finally {
     if (connection) {
@@ -412,7 +420,7 @@ router.post('/bookings/delete-multiple', auth.verifyToken, async function(req, r
 });
 
 // Add booking to bookings table
-router.post('/bookings', async function(req, res) {
+router.post('/bookings', async function (req, res) {
   let connection;
   try {
     connection = await createConnection();
@@ -469,21 +477,21 @@ router.post('/bookings', async function(req, res) {
 });
 
 // Get all bookings for the current user (by user_id)
-router.get('/my-bookings', auth.verifyToken, async function(req, res) {
+router.get('/my-bookings', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     console.log('=== MY-BOOKINGS DEBUG ===');
     console.log('User ID from token:', req.user.userId);
     console.log('User object:', req.user);
-    
+
     connection = await createConnection();
 
     // First check if bookings table exists
     const [tables] = await connection.execute("SHOW TABLES LIKE 'bookings'");
     console.log('Bookings table exists:', tables.length > 0);
-    
+
     if (tables.length === 0) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Bookings table does not exist',
         details: 'The bookings table has not been created in the database'
       });
@@ -533,21 +541,21 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
       const newStart = reschedule.formatted_new_start ? String(reschedule.formatted_new_start).trim() : null;
       const currentEnd = reschedule.current_end_date ? String(reschedule.current_end_date).trim() : null;
       const newEnd = reschedule.formatted_new_end ? String(reschedule.formatted_new_end).trim() : null;
-      
+
       // Check if dates need updating
       const datesDiffer = currentStart !== newStart || currentEnd !== newEnd;
       const timeDiffers = reschedule.new_rent_time && reschedule.current_rent_time !== reschedule.new_rent_time;
-      
+
       console.log(`Checking booking ${reschedule.booking_id}:`);
       console.log(`  Current dates: "${currentStart}" to "${currentEnd}"`);
       console.log(`  New dates: "${newStart}" to "${newEnd}"`);
       console.log(`  Dates differ: ${datesDiffer}`);
-      
+
       if (datesDiffer || timeDiffers) {
         console.log(`Syncing booking ${reschedule.booking_id}:`);
         console.log(`  Updating from ${currentStart} to ${newStart}`);
         console.log(`  Updating from ${currentEnd} to ${newEnd}`);
-        
+
         // Use the raw date values from the request - ensure they're in correct format
         // MySQL expects DATE format (YYYY-MM-DD) and TIME format (HH:MM:SS)
         const updateResult = await connection.execute(
@@ -559,14 +567,14 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
             reschedule.booking_id
           ]
         );
-        
+
         console.log(`✓ Updated booking ${reschedule.booking_id} with new dates`);
         console.log(`  Rows affected: ${updateResult[0].affectedRows}`);
-        
+
         if (updateResult[0].affectedRows === 0) {
           console.error(`  WARNING: No rows were updated! Check if booking ${reschedule.booking_id} exists.`);
         }
-        
+
         // Verify the update immediately
         const [verify] = await connection.execute(
           'SELECT DATE_FORMAT(start_date, "%Y-%m-%d") as start_date, DATE_FORMAT(end_date, "%Y-%m-%d") as end_date, rent_time FROM bookings WHERE id = ?',
@@ -614,7 +622,7 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
     console.log('Found bookings:', bookings.length);
     console.log('Synced approved reschedules:', approvedReschedules.length);
     console.log('Synced approved cancellations:', approvedCancellations.length);
-    
+
     // Log booking dates for debugging
     bookings.forEach((booking, index) => {
       console.log(`Booking ${index + 1} (ID: ${booking.id}): ${booking.vehicle_name}`);
@@ -626,7 +634,7 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
     res.json(bookings);
   } catch (error) {
     console.error('Error fetching bookings:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch bookings',
       details: error.message,
       stack: error.stack
@@ -639,12 +647,12 @@ router.get('/my-bookings', auth.verifyToken, async function(req, res) {
 });
 
 // Mark notification as read
-router.put('/:id/mark-notification-read', auth.verifyToken, async function(req, res) {
+router.put('/:id/mark-notification-read', auth.verifyToken, async function (req, res) {
   let connection;
   try {
     const bookingId = req.params.id;
     const userId = req.user.userId;
-    
+
     connection = await createConnection();
 
     // Update notification_sent to 1 for this booking
@@ -656,7 +664,7 @@ router.put('/:id/mark-notification-read', auth.verifyToken, async function(req, 
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to mark notification as read',
       details: error.message
     });
@@ -668,7 +676,7 @@ router.put('/:id/mark-notification-read', auth.verifyToken, async function(req, 
 });
 
 // Test endpoint to check authentication (requires auth)
-router.get('/test-auth', auth.verifyToken, async function(req, res) {
+router.get('/test-auth', auth.verifyToken, async function (req, res) {
   try {
     console.log('=== AUTH TEST ===');
     console.log('User from token:', req.user);
@@ -678,7 +686,7 @@ router.get('/test-auth', auth.verifyToken, async function(req, res) {
     });
   } catch (error) {
     console.error('Auth test error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Auth test failed',
       details: error.message
     });
@@ -686,7 +694,7 @@ router.get('/test-auth', auth.verifyToken, async function(req, res) {
 });
 
 // Test endpoint to check database connection (no auth required)
-router.get('/test-db', async function(req, res) {
+router.get('/test-db', async function (req, res) {
   let connection;
   try {
     console.log('=== DATABASE TEST ===');
@@ -717,7 +725,7 @@ router.get('/test-db', async function(req, res) {
     });
   } catch (error) {
     console.error('Database test error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Database test failed',
       details: error.message,
       stack: error.stack
@@ -732,6 +740,93 @@ router.get('/test-db', async function(req, res) {
 // Test route to verify DELETE is working
 router.delete('/test-delete', (req, res) => {
   res.json({ message: 'DELETE method is working' });
+});
+
+// Get transaction details for a booking
+router.get('/transaction/:id', auth.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await createConnection();
+
+    // 1. Get the booking details
+    const [bookings] = await connection.execute(
+      `SELECT b.*, v.name as vehicle_name, c.company_name
+       FROM bookings b
+       LEFT JOIN vehicles v ON b.vehicle_id = v.id
+       LEFT JOIN companies c ON b.company_id = c.id
+       WHERE b.id = ? AND b.user_id = ?`,
+      [req.params.id, req.user.userId]
+    );
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    const booking = bookings[0];
+
+    // 2. Get all payments for this booking
+    // Verify payments table structure first
+    let payments = [];
+    try {
+      const [paymentRecords] = await connection.execute(
+        `SELECT id, amount, status, payment_method, transaction_id, created_at
+         FROM payments
+         WHERE booking_id = ?
+         ORDER BY created_at DESC`,
+        [req.params.id]
+      );
+      payments = paymentRecords;
+    } catch (e) {
+      console.log('Payments table might be missing or different structure:', e.message);
+      // Fallback if payments table structure is different
+    }
+
+    // 3. Calculate summary
+    const totalCost = parseFloat(booking.total_cost || 0);
+    const totalPaid = payments
+      .filter(p => p.status === 'paid' || p.status === 'completed')
+      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    // If we don't have total_cost in booking, we might need to derive it
+    // But for now just use what's there or default to parsing it
+
+    // For payments that don't have records but booking says paid
+    let remainingAmount = totalCost - totalPaid;
+    if (booking.payment_status === 'paid') {
+      remainingAmount = 0;
+    } else if (remainingAmount < 0) {
+      remainingAmount = 0;
+    }
+
+    res.json({
+      booking_id: booking.id,
+      vehicle_name: booking.vehicle_name,
+      company_name: booking.company_name,
+      start_date: booking.start_date,
+      end_date: booking.end_date,
+      rent_time: booking.rent_time,
+      service_type: booking.service_type,
+      status: booking.status,
+      payment_status: booking.payment_status || 'Pending',
+      total_price: totalCost,
+      payment_summary: {
+        total_cost: totalCost,
+        total_paid: totalPaid,
+        remaining_amount: remainingAmount
+      },
+      payments: payments
+    });
+  } catch (error) {
+    console.error('Error fetching transaction details:', error);
+    res.status(500).json({
+      error: 'Failed to fetch transaction details',
+      details: error.message
+    });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
 });
 
 module.exports = router; 
