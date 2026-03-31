@@ -60,7 +60,8 @@ router.get('/conversations', auth.verifyToken, async (req, res) => {
     connection = await createConnection();
 
     const [conversations] = await connection.execute(
-      `SELECT c.*, co.company_name, co.company_logo, v.name as vehicle_name, v.image_path as vehicle_image
+      `SELECT c.*, co.company_name, co.company_logo, v.name as vehicle_name, v.image_path as vehicle_image,
+       (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_role = 'company' AND m.is_read = 0) as unread_count
        FROM conversations c
        JOIN companies co ON c.company_id = co.id
        LEFT JOIN vehicles v ON c.vehicle_id = v.id
@@ -93,6 +94,12 @@ router.get('/messages/:conversationId', auth.verifyToken, async (req, res) => {
     if (conversations.length === 0) {
       return res.status(403).json({ error: 'Access denied' });
     }
+
+    // Mark company messages as read
+    await connection.execute(
+      "UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_role = 'company' AND is_read = 0",
+      [req.params.conversationId]
+    );
 
     const [messages] = await connection.execute(
       'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
