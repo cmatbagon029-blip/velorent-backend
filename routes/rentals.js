@@ -610,12 +610,16 @@ router.get('/my-bookings', auth.verifyToken, async function (req, res) {
 
     // Fetch bookings after sync to ensure we get updated dates
     const [bookings] = await connection.execute(
-      `SELECT *, 
-              DATE_FORMAT(start_date, '%Y-%m-%d') as formatted_start_date,
-              DATE_FORMAT(end_date, '%Y-%m-%d') as formatted_end_date
-       FROM bookings 
-       WHERE user_id = ? 
-       ORDER BY booking_date DESC`,
+      `SELECT b.*, 
+              DATE_FORMAT(b.start_date, '%Y-%m-%d') as formatted_start_date,
+              DATE_FORMAT(b.end_date, '%Y-%m-%d') as formatted_end_date,
+              cp.allow_reschedule,
+              cp.allow_cancellation,
+              cp.allow_refund
+       FROM bookings b
+       LEFT JOIN company_policies cp ON b.company_id = cp.company_id
+       WHERE b.user_id = ? 
+       ORDER BY b.booking_date DESC`,
       [req.user.userId]
     );
 

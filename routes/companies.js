@@ -330,16 +330,16 @@ router.get('/:id/policies', async (req, res) => {
     const policy = rows[0];
     res.json({
       company_id: policy.company_id,
-      reschedule_terms: policy.reschedule_terms,
-      cancellation_terms: policy.cancellation_terms,
-      refund_terms: policy.refund_terms,
-      allow_reschedule: Boolean(policy.allow_reschedule),
-      allow_cancellation: Boolean(policy.allow_cancellation),
-      allow_refund: Boolean(policy.allow_refund),
-      reschedule_free_days: policy.reschedule_free_days,
-      reschedule_fee_percentage: parseFloat(policy.reschedule_fee_percentage),
-      cancellation_fee_percentage: parseFloat(policy.cancellation_fee_percentage),
-      deposit_refundable: Boolean(policy.deposit_refundable),
+      reschedule_terms: policy.reschedule_terms || 'No reschedule terms defined.',
+      cancellation_terms: policy.cancellation_terms || 'No cancellation terms defined.',
+      refund_terms: policy.refund_terms || 'No refund terms defined.',
+      allow_reschedule: Boolean(policy.allow_reschedule ?? true),
+      allow_cancellation: Boolean(policy.allow_cancellation ?? true),
+      allow_refund: Boolean(policy.allow_refund ?? true),
+      reschedule_free_days: policy.reschedule_free_days ?? 3,
+      reschedule_fee_percentage: parseFloat(policy.reschedule_fee_percentage ?? 10.00),
+      cancellation_fee_percentage: parseFloat(policy.cancellation_fee_percentage ?? 20.00),
+      deposit_refundable: Boolean(policy.deposit_refundable ?? false),
       last_updated: policy.last_updated
     });
   } catch (error) {
