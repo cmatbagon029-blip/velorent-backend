@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/auth');
@@ -9,6 +9,7 @@ const verificationRoutes = require('./routes/verification');
 const requestRoutes = require('./routes/requests');
 const notificationRoutes = require('./routes/notifications');
 const paymentRoutes = require('./routes/payments');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/api/rentals', rentalRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Use the verification routes BEFORE app.listen
 app.use('/api', verificationRoutes);

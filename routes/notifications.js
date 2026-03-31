@@ -111,31 +111,6 @@ router.put('/mark-all-read', auth.verifyToken, async (req, res) => {
   }
 });
 
-// Delete all notifications for the user
-router.delete('/clear-all', auth.verifyToken, async (req, res) => {
-  let connection;
-  try {
-    connection = await createConnection();
-
-    await connection.execute(
-      'DELETE FROM notifications WHERE user_id = ?',
-      [req.user.userId]
-    );
-
-    res.json({ message: 'All notifications cleared' });
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
-    res.status(500).json({ 
-      error: 'Failed to clear notifications',
-      details: error.message 
-    });
-  } finally {
-    if (connection) {
-      await connection.end();
-    }
-  }
-});
-
 // Delete a specific notification
 router.delete('/:id', auth.verifyToken, async (req, res) => {
   let connection;
@@ -156,6 +131,31 @@ router.delete('/:id', auth.verifyToken, async (req, res) => {
     console.error('Error deleting notification:', error);
     res.status(500).json({ 
       error: 'Failed to delete notification',
+      details: error.message 
+    });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
+// Delete all notifications for the user
+router.delete('/clear-all', auth.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await createConnection();
+
+    await connection.execute(
+      'DELETE FROM notifications WHERE user_id = ?',
+      [req.user.userId]
+    );
+
+    res.json({ message: 'All notifications cleared' });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+    res.status(500).json({ 
+      error: 'Failed to clear notifications',
       details: error.message 
     });
   } finally {
