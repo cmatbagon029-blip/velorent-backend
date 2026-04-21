@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const config = require('../config');
 const { createConnection } = require('../utils/db');
 
 // Start or get a conversation
@@ -39,6 +40,10 @@ router.post('/start', auth.verifyToken, async (req, res) => {
 
       // If the last conversation was from today, reuse it
       if (today === lastUpdate) {
+        // Transform image paths to full URLs
+        if (lastConv.company_logo) lastConv.company_logo = config.getS3Url(lastConv.company_logo);
+        if (lastConv.vehicle_image) lastConv.vehicle_image = config.getS3Url(lastConv.vehicle_image);
+        
         return res.json(lastConv);
       }
     }
@@ -54,7 +59,13 @@ router.post('/start', auth.verifyToken, async (req, res) => {
       [result.insertId]
     );
 
-    res.status(201).json(newConversation[0]);
+    const conversation = newConversation[0];
+    
+    // Transform image paths to full URLs
+    if (conversation.company_logo) conversation.company_logo = config.getS3Url(conversation.company_logo);
+    if (conversation.vehicle_image) conversation.vehicle_image = config.getS3Url(conversation.vehicle_image);
+    
+    res.status(201).json(conversation);
   } catch (error) {
     console.error('Error starting conversation:', error);
     res.status(500).json({ error: 'Failed to start conversation', details: error.message });
@@ -80,7 +91,14 @@ router.get('/conversations', auth.verifyToken, async (req, res) => {
       [req.user.userId]
     );
 
-    res.json(conversations);
+    // Transform image paths to full URLs
+    const transformedConversations = conversations.map(conv => ({
+      ...conv,
+      company_logo: conv.company_logo ? config.getS3Url(conv.company_logo) : null,
+      vehicle_image: conv.vehicle_image ? config.getS3Url(conv.vehicle_image) : null
+    }));
+
+    res.json(transformedConversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);
     res.status(500).json({ error: 'Failed to fetch conversations' });
