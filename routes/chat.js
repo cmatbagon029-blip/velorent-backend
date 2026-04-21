@@ -238,4 +238,33 @@ router.delete('/messages/:id', auth.verifyToken, async (req, res) => {
   }
 });
 
+// Delete a conversation
+router.delete('/conversations/:id', auth.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await createConnection();
+    const conversationId = req.params.id;
+    const userId = req.user.userId;
+
+    // Verify it belongs to the user
+    const [convs] = await connection.execute(
+      'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
+      [conversationId, userId]
+    );
+
+    if (convs.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found or access denied' });
+    }
+
+    await connection.execute('DELETE FROM conversations WHERE id = ?', [conversationId]);
+
+    res.json({ success: true, message: 'Conversation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({ error: 'Failed to delete conversation' });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
 module.exports = router;
