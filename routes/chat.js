@@ -16,7 +16,7 @@ router.post('/start', auth.verifyToken, async (req, res) => {
 
     connection = await createConnection();
 
-    // Check if conversation already exists
+    // Check if there is an active conversation from today
     let sql = 'SELECT * FROM conversations WHERE user_id = ? AND company_id = ?';
     let params = [user_id, company_id];
 
@@ -27,10 +27,20 @@ router.post('/start', auth.verifyToken, async (req, res) => {
       sql += ' AND vehicle_id IS NULL';
     }
 
+    // Order by updated_at to get the most recent one
+    sql += ' ORDER BY updated_at DESC LIMIT 1';
+
     const [conversations] = await connection.execute(sql, params);
 
     if (conversations.length > 0) {
-      return res.json(conversations[0]);
+      const lastConv = conversations[0];
+      const today = new Date().toISOString().split('T')[0];
+      const lastUpdate = new Date(lastConv.updated_at).toISOString().split('T')[0];
+
+      // If the last conversation was from today, reuse it
+      if (today === lastUpdate) {
+        return res.json(lastConv);
+      }
     }
 
     // Create new conversation
