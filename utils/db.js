@@ -15,7 +15,8 @@ async function createConnection() {
     port: parseInt(process.env.DB_PORT || '3306', 10),
     connectTimeout: 10000, // 10 seconds
     acquireTimeout: 10000,
-    timeout: 10000
+    timeout: 10000,
+    timezone: '+08:00'
   };
 
   // Log connection attempt (without password)
