@@ -35,8 +35,8 @@ router.post('/start', auth.verifyToken, async (req, res) => {
 
     if (conversations.length > 0) {
       const lastConv = conversations[0];
-      const today = new Date().toISOString().split('T')[0];
-      const lastUpdate = new Date(lastConv.updated_at).toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      const lastUpdate = new Date(lastConv.updated_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
       // If the last conversation was from today, reuse it
       if (today === lastUpdate) {
@@ -187,6 +187,52 @@ router.post('/send', auth.verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ error: 'Failed to send message' });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+// Delete a message
+router.delete('/messages/:id', auth.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await createConnection();
+    const messageId = req.params.id;
+    const userId = req.user.userId;
+    const userRole = req.user.role; // 'user' or 'company'
+
+    // Check if the message exists and belongs to the sender
+    const [messages] = await connection.execute(
+      'SELECT * FROM messages WHERE id = ?',
+      [messageId]
+    );
+
+    if (messages.length === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const message = messages[0];
+    
+    // Authorization check
+    if (userRole === 'user') {
+      if (message.sender_role !== 'user' || message.sender_id !== userId) {
+        return res.status(403).json({ error: 'Unauthorized to delete this message' });
+      }
+    } else if (userRole === 'company') {
+      // For company, we check if the sender_role is 'company' and the sender_id matches
+      // Note: req.user.userId for companies might be the company_id or user_id depending on how auth is handled
+      // But typically it's the account ID.
+      if (message.sender_role !== 'company' || message.sender_id !== userId) {
+        return res.status(403).json({ error: 'Unauthorized to delete this message' });
+      }
+    }
+
+    await connection.execute('DELETE FROM messages WHERE id = ?', [messageId]);
+
+    res.json({ success: true, message: 'Message deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ error: 'Failed to delete message' });
   } finally {
     if (connection) await connection.end();
   }
