@@ -28,8 +28,8 @@ router.post('/start', auth.verifyToken, async (req, res) => {
       sql += ' AND vehicle_id IS NULL';
     }
 
-    // Order by updated_at to get the most recent one
-    sql += ' ORDER BY updated_at DESC LIMIT 1';
+    // Order by updated_at to get the most recent one where not deleted by user
+    sql += ' AND deleted_by_user = 0 ORDER BY updated_at DESC LIMIT 1';
 
     const [conversations] = await connection.execute(sql, params);
 
@@ -82,11 +82,11 @@ router.get('/conversations', auth.verifyToken, async (req, res) => {
 
     const [conversations] = await connection.execute(
       `SELECT c.*, co.company_name, co.company_logo, v.name as vehicle_name, v.image_path as vehicle_image,
-       (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_role = 'company' AND m.is_read = 0) as unread_count
+       (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_role = 'company' AND m.is_read = 0 AND m.deleted_by_user = 0) as unread_count
        FROM conversations c
        JOIN companies co ON c.company_id = co.id
        LEFT JOIN vehicles v ON c.vehicle_id = v.id
-       WHERE c.user_id = ?
+       WHERE c.user_id = ? AND c.deleted_by_user = 0
        ORDER BY c.updated_at DESC`,
       [req.user.userId]
     );
@@ -125,12 +125,12 @@ router.get('/messages/:conversationId', auth.verifyToken, async (req, res) => {
 
     // Mark company messages as read
     await connection.execute(
-      "UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_role = 'company' AND is_read = 0",
+      "UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_role = 'company' AND is_read = 0 AND deleted_by_user = 0",
       [req.params.conversationId]
     );
 
     const [messages] = await connection.execute(
-      'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
+      'SELECT * FROM messages WHERE conversation_id = ? AND deleted_by_user = 0 ORDER BY created_at ASC',
       [req.params.conversationId]
     );
 
@@ -200,6 +200,7 @@ router.delete('/messages/:id', auth.verifyToken, async (req, res) => {
     const messageId = req.params.id;
     const userId = req.user.userId;
     const userRole = req.user.role; // 'user' or 'company'
+    const deleteType = req.body.delete_type || 'me'; // 'me' or 'everyone'
 
     // Check if the message exists and belongs to the sender
     const [messages] = await connection.execute(
@@ -213,23 +214,22 @@ router.delete('/messages/:id', auth.verifyToken, async (req, res) => {
 
     const message = messages[0];
     
-    // Authorization check
-    if (userRole === 'user') {
-      if (message.sender_role !== 'user' || message.sender_id !== userId) {
-        return res.status(403).json({ error: 'Unauthorized to delete this message' });
+    if (deleteType === 'everyone') {
+      // Only sender can delete for everyone
+      if (message.sender_role !== userRole || message.sender_id !== userId) {
+        return res.status(403).json({ error: 'Only the sender can delete this message for everyone' });
       }
-    } else if (userRole === 'company') {
-      // For company, we check if the sender_role is 'company' and the sender_id matches
-      // Note: req.user.userId for companies might be the company_id or user_id depending on how auth is handled
-      // But typically it's the account ID.
-      if (message.sender_role !== 'company' || message.sender_id !== userId) {
-        return res.status(403).json({ error: 'Unauthorized to delete this message' });
+      await connection.execute('DELETE FROM messages WHERE id = ?', [messageId]);
+    } else {
+      // Delete for me (logical)
+      if (userRole === 'user') {
+        await connection.execute('UPDATE messages SET deleted_by_user = 1 WHERE id = ?', [messageId]);
+      } else {
+        await connection.execute('UPDATE messages SET deleted_by_company = 1 WHERE id = ?', [messageId]);
       }
     }
 
-    await connection.execute('DELETE FROM messages WHERE id = ?', [messageId]);
-
-    res.json({ success: true, message: 'Message deleted successfully' });
+    res.json({ success: true, message: `Message deleted for ${deleteType === 'everyone' ? 'everyone' : 'you'}` });
   } catch (error) {
     console.error('Error deleting message:', error);
     res.status(500).json({ error: 'Failed to delete message' });
@@ -245,20 +245,24 @@ router.delete('/conversations/:id', auth.verifyToken, async (req, res) => {
     connection = await createConnection();
     const conversationId = req.params.id;
     const userId = req.user.userId;
+    const userRole = req.user.role;
+    const deleteType = req.body.delete_type || 'me';
 
-    // Verify it belongs to the user
-    const [convs] = await connection.execute(
-      'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
-      [conversationId, userId]
-    );
+    if (deleteType === 'everyone') {
+      // Verify user participates in conversation (or is authorized)
+      const [convs] = await connection.execute(
+        'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
+        [conversationId, userId]
+      );
+      if (convs.length === 0) return res.status(403).json({ error: 'Access denied' });
 
-    if (convs.length === 0) {
-      return res.status(404).json({ error: 'Conversation not found or access denied' });
+      await connection.execute('DELETE FROM conversations WHERE id = ?', [conversationId]);
+    } else {
+      // Mark as deleted for user
+      await connection.execute('UPDATE conversations SET deleted_by_user = 1 WHERE id = ?', [conversationId]);
     }
 
-    await connection.execute('DELETE FROM conversations WHERE id = ?', [conversationId]);
-
-    res.json({ success: true, message: 'Conversation deleted successfully' });
+    res.json({ success: true, message: `Conversation deleted for ${deleteType === 'everyone' ? 'everyone' : 'you'}` });
   } catch (error) {
     console.error('Error deleting conversation:', error);
     res.status(500).json({ error: 'Failed to delete conversation' });
