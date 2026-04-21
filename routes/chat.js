@@ -219,7 +219,11 @@ router.delete('/messages/:id', auth.verifyToken, async (req, res) => {
       if (message.sender_role !== userRole || message.sender_id !== userId) {
         return res.status(403).json({ error: 'Only the sender can delete this message for everyone' });
       }
-      await connection.execute('DELETE FROM messages WHERE id = ?', [messageId]);
+      // Update message as unsent instead of deleting row
+      await connection.execute(
+        "UPDATE messages SET is_unsent = 1, message = 'This message was unsent' WHERE id = ?", 
+        [messageId]
+      );
     } else {
       // Delete for me (logical)
       if (userRole === 'user') {
