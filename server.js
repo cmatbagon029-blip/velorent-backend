@@ -5,6 +5,7 @@ const vehiclesRouter = require('./routes/vehicles');
 const companiesRouter = require('./routes/companies');
 const authRouter = require('./routes/auth');
 const rentalsRouter = require('./routes/rentals');
+const reviewsRouter = require('./routes/reviews');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/vehicles', vehiclesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/rentals', rentalsRouter);
+app.use('/api/reviews', reviewsRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
