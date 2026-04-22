@@ -73,6 +73,47 @@ router.get('/booking/:bookingId', auth.verifyToken, async (req, res) => {
     } finally {
         if (connection) await connection.end();
     }
+// Get reviews for a specific vehicle
+router.get('/vehicle/:vehicleId', async (req, res) => {
+    let connection;
+    try {
+        connection = await createConnection();
+        const [reviews] = await connection.execute(
+            `SELECT r.*, u.name as user_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             WHERE r.vehicle_id = ? 
+             ORDER BY r.created_at DESC`,
+            [req.params.vehicleId]
+        );
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch vehicle reviews' });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// Get reviews for a specific company
+router.get('/company/:companyId', async (req, res) => {
+    let connection;
+    try {
+        connection = await createConnection();
+        const [reviews] = await connection.execute(
+            `SELECT r.*, u.name as user_name, v.model_name as vehicle_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             LEFT JOIN vehicles v ON r.vehicle_id = v.id
+             WHERE r.company_id = ? 
+             ORDER BY r.created_at DESC`,
+            [req.params.companyId]
+        );
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch company reviews' });
+    } finally {
+        if (connection) await connection.end();
+    }
 });
 
 module.exports = router;
