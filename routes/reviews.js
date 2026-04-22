@@ -73,6 +73,8 @@ router.get('/booking/:bookingId', auth.verifyToken, async (req, res) => {
     } finally {
         if (connection) await connection.end();
     }
+});
+
 // Get reviews for a specific vehicle
 router.get('/vehicle/:vehicleId', async (req, res) => {
     let connection;
