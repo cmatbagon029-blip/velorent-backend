@@ -787,20 +787,16 @@ router.get('/transaction/:id', auth.verifyToken, async (req, res) => {
 
     // 3. Calculate summary
     const totalCost = parseFloat(booking.total_cost || 0);
-    const totalPaid = payments
+    let totalPaid = payments
       .filter(p => p.status === 'paid' || p.status === 'completed')
       .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
-    // If we don't have total_cost in booking, we might need to derive it
-    // But for now just use what's there or default to parsing it
-
-    // For payments that don't have records but booking says paid
-    let remainingAmount = totalCost - totalPaid;
-    if (booking.payment_status === 'paid') {
-      remainingAmount = 0;
-    } else if (remainingAmount < 0) {
-      remainingAmount = 0;
+    // If the booking is marked as PAID, ensure totalPaid reflects totalCost
+    if (booking.payment_status?.toLowerCase() === 'paid') {
+      totalPaid = Math.max(totalPaid, totalCost);
     }
+
+    let remainingAmount = Math.max(0, totalCost - totalPaid);
 
     res.json({
       booking_id: booking.id,
