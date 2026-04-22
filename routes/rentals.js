@@ -787,15 +787,19 @@ router.get('/transaction/:id', auth.verifyToken, async (req, res) => {
 
     // 3. Calculate summary
     const totalCost = parseFloat(booking.total_cost || 0);
+    const downPayment = parseFloat(booking.down_payment || 0);
+    
     let totalPaid = payments
       .filter(p => p.status === 'paid' || p.status === 'completed')
       .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
-    // If the booking is marked as PAID, ensure totalPaid reflects totalCost
-    if (booking.payment_status?.toLowerCase() === 'paid') {
-      totalPaid = Math.max(totalPaid, totalCost);
+    // Fallback: If totalPaid from the payments table is 0 but the booking is approved/paid,
+    // it likely means the down_payment was handled but no payment record was found.
+    if (totalPaid === 0 && (booking.status?.toLowerCase() === 'approved' || booking.payment_status?.toLowerCase() === 'paid')) {
+      totalPaid = downPayment;
     }
 
+    // The remaining amount should be the actual unpaid balance
     let remainingAmount = Math.max(0, totalCost - totalPaid);
 
     res.json({
