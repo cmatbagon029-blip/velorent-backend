@@ -76,6 +76,47 @@ router.post('/run-production-migration', async (req, res) => {
             }
         }
 
+        // 4. Create system_settings table
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                setting_key VARCHAR(100) NOT NULL UNIQUE,
+                setting_value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Insert default values
+        await connection.execute(`
+            INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES 
+            ('booking_fee_percent', '12'),
+            ('processing_fee_percent', '2')
+        `);
+        console.log('✓ Checked/Created system_settings table and default values');
+
+        // 5. Add fee columns to bookings table
+        try {
+            await connection.execute(`ALTER TABLE bookings ADD COLUMN booking_fee DECIMAL(10,2)`);
+            console.log('✓ Added booking_fee to bookings');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME') {
+                console.log('✓ booking_fee already exists');
+            } else {
+                throw e;
+            }
+        }
+
+        try {
+            await connection.execute(`ALTER TABLE bookings ADD COLUMN paymongo_fee DECIMAL(10,2)`);
+            console.log('✓ Added paymongo_fee to bookings');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME') {
+                console.log('✓ paymongo_fee already exists');
+            } else {
+                throw e;
+            }
+        }
+
         res.json({ success: true, message: 'Production database migration completed successfully' });
     } catch (error) {
         console.error('Migration failed:', error);

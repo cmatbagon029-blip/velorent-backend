@@ -12,6 +12,7 @@ const paymentRoutes = require('./routes/payments');
 const chatRoutes = require('./routes/chat');
 const reviewsRoutes = require('./routes/reviews');
 const migrateRoutes = require('./routes/migrate');
+const settingsRoutes = require('./routes/settings');
 const { startReminderService } = require('./utils/reminders');
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/migrate', migrateRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Use the verification routes BEFORE app.listen
 app.use('/api', verificationRoutes);

@@ -163,7 +163,8 @@ router.post('/', auth.verifyToken, upload.fields([
     // Get fields from req.body (multer parses them as strings)
     const {
       fullName, mobileNumber, serviceType, rentFromDate, rentToDate, rentTime, destination, occasion, message, vehicleId, vehicleName,
-      totalCost, downPayment, remainingAmount, paymentMethod, driverId, driverName, driverPhone, driverExperience
+      totalCost, downPayment, remainingAmount, paymentMethod, driverId, driverName, driverPhone, driverExperience,
+      bookingFee, paymongoFee
     } = req.body;
 
     // Normalize serviceType from various possible input field names
@@ -270,8 +271,9 @@ router.post('/', auth.verifyToken, upload.fields([
         service_type, start_date, end_date, rent_time, destination, occasion, message, 
         valid_id_path, additional_id_path, booking_date, status, 
         total_cost, down_payment, remaining_amount, payment_method,
-        driver_id, driver_name, driver_phone, driver_experience
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+        driver_id, driver_name, driver_phone, driver_experience,
+        booking_fee, paymongo_fee
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         req.user.userId,
         fullName,
@@ -298,7 +300,9 @@ router.post('/', auth.verifyToken, upload.fields([
         driverId || null,
         driverName || null,
         driverPhone || null,
-        driverExperience || null
+        driverExperience || null,
+        bookingFee || 0,
+        paymongoFee || 0
       ]
     );
 
@@ -947,7 +951,9 @@ router.get('/transaction/:id', auth.verifyToken, async (req, res) => {
       payment_summary: {
         total_cost: totalCost,
         total_paid: totalPaid,
-        remaining_amount: remainingAmount
+        remaining_amount: remainingAmount,
+        booking_fee: parseFloat(booking.booking_fee || 0),
+        paymongo_fee: parseFloat(booking.paymongo_fee || 0)
       },
       payments: payments
     });
