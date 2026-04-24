@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { createConnection } = require('../utils/db');
 const config = require('../config');
+const { verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Regular login endpoint
@@ -284,6 +285,60 @@ router.post('/social-login', async (req, res) => {
     if (connection) {
       await connection.end();
     }
+  }
+});
+
+
+// Get user profile
+router.get('/profile', verifyToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await createConnection();
+    const [users] = await connection.execute(
+      'SELECT id, name, email, phone, address, picture, role, provider, created_at FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, user: users[0] });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+// Update user profile
+router.put('/profile', verifyToken, async (req, res) => {
+  let connection;
+  try {
+    const { name, phone, address } = req.body;
+    connection = await createConnection();
+
+    await connection.execute(
+      'UPDATE users SET name = ?, phone = ?, address = ?, updated_at = NOW() WHERE id = ?',
+      [name, phone, address, req.user.userId]
+    );
+
+    const [updatedUsers] = await connection.execute(
+      'SELECT id, name, email, phone, address, picture, role, provider, created_at FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUsers[0]
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  } finally {
+    if (connection) await connection.end();
   }
 });
 
