@@ -315,12 +315,21 @@ router.delete('/bookings/:id', auth.verifyToken, async function (req, res) {
 
     const booking = bookings[0];
 
-    // Only allow deletion of cancelled bookings
-    if (booking.status !== 'Cancelled') {
+    // Only allow deletion of certain bookings
+    const deletableStatuses = ['cancelled', 'disapproved', 'rejected', 'approved', 'rented', 'completed'];
+    if (!deletableStatuses.includes(booking.status.toLowerCase())) {
       return res.status(400).json({
-        error: 'Only cancelled bookings can be deleted',
+        error: 'This booking cannot be deleted based on its current status.',
         currentStatus: booking.status
       });
+    }
+
+    // If the booking was holding a vehicle, release the vehicle
+    if (['approved', 'rented', 'active'].includes(booking.status.toLowerCase())) {
+      await connection.execute(
+        'UPDATE vehicles SET status = "available" WHERE id = ?',
+        [booking.vehicle_id]
+      );
     }
 
     // Delete the booking
