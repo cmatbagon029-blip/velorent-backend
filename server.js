@@ -28,6 +28,9 @@ app.use('/api/companies', companiesRouter);
 app.use('/api/rentals', rentalsRouter);
 app.use('/api/reviews', reviewsRouter);
 
+const migrateRouter = require('./routes/migrate');
+app.use('/api/migrate', migrateRouter);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
