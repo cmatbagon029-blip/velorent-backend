@@ -145,6 +145,8 @@ router.put('/:id/return', auth.verifyToken, async function (req, res) {
       await connection.end();
     }
   }
+});
+
 // Create new rental and booking with file uploads
 router.post('/', auth.verifyToken, upload.fields([
   { name: 'validId', maxCount: 1 },
