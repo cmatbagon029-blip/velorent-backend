@@ -342,4 +342,59 @@ router.put('/profile', verifyToken, async (req, res) => {
   }
 });
 
+
+
+
+// Change password
+router.post('/change-password', verifyToken, async (req, res) => {
+  let connection;
+  try {
+    const { oldPassword, newPassword } = req.body;
+    connection = await createConnection();
+
+    // Get current user password
+    const [users] = await connection.execute(
+      'SELECT password FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    // Social login users might not have a password
+    if (!user.password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Accounts using social login cannot change password here. Please use your social provider settings.' 
+      });
+    }
+
+    // Verify old password
+    const isValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await connection.execute(
+      'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
+      [hashedPassword, req.user.userId]
+    );
+
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
 module.exports = router;
