@@ -705,7 +705,7 @@ router.get('/my-bookings', auth.verifyToken, async function (req, res) {
               cp.allow_refund
        FROM bookings b
        LEFT JOIN company_policies cp ON b.company_id = cp.company_id
-       WHERE b.user_id = ? 
+       WHERE b.user_id = ? AND b.deleted_by_user = 0
        ORDER BY b.booking_date DESC`,
       [req.user.userId]
     );
@@ -734,6 +734,50 @@ router.get('/my-bookings', auth.verifyToken, async function (req, res) {
     if (connection) {
       await connection.end();
     }
+  }
+});
+
+// Soft delete booking (hide from history)
+router.delete('/:id', auth.verifyToken, async function (req, res) {
+  let connection;
+  try {
+    const bookingId = req.params.id;
+    const userId = req.user.userId;
+
+    connection = await createConnection();
+
+    // Check if booking exists and belongs to user
+    const [bookings] = await connection.execute(
+      'SELECT status FROM bookings WHERE id = ? AND user_id = ?',
+      [bookingId, userId]
+    );
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    const status = bookings[0].status;
+    // Allow deleting only finished statuses
+    const deletableStatuses = ['Cancelled', 'Completed', 'Returned', 'Rejected', 'Expired'];
+    
+    if (!deletableStatuses.includes(status)) {
+      return res.status(400).json({ 
+        error: 'Only finished bookings can be deleted from history' 
+      });
+    }
+
+    // Mark as deleted by user
+    await connection.execute(
+      'UPDATE bookings SET deleted_by_user = 1 WHERE id = ?',
+      [bookingId]
+    );
+
+    res.json({ success: true, message: 'Booking removed from history' });
+  } catch (error) {
+    console.error('Error deleting booking:', error);
+    res.status(500).json({ error: 'Failed to delete booking' });
+  } finally {
+    if (connection) await connection.end();
   }
 });
 
