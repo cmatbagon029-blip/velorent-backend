@@ -127,13 +127,13 @@ router.post('/', auth.verifyToken, upload.fields([
     if (normalizedServiceType) {
       const st = normalizedServiceType.toLowerCase().replace(/[-_]/g, ' ');
       if (st.includes('self') || st.includes('without driver')) {
-        normalizedServiceType = 'Self Drive';
+        normalizedServiceType = 'without_driver';
       } else if (st.includes('pick') || st.includes('drop') || st.includes('with driver')) {
-        normalizedServiceType = 'Pick-up/Drop-off';
+        normalizedServiceType = 'with_driver';
       }
     } else {
       // Default fallback if missing
-      normalizedServiceType = 'Self Drive';
+      normalizedServiceType = 'without_driver';
     }
 
     console.log('=== BOOKING SUBMISSION DEBUG ===');
