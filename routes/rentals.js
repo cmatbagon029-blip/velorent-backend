@@ -120,15 +120,31 @@ router.post('/', auth.verifyToken, upload.fields([
       totalCost, downPayment, remainingAmount, paymentMethod, driverId, driverName, driverPhone, driverExperience
     } = req.body;
 
+    // Normalize serviceType from various possible input field names
+    let normalizedServiceType = serviceType || req.body.service_type || req.body.service_Type;
+    
+    // Map common variations to standard values
+    if (normalizedServiceType) {
+      const st = normalizedServiceType.toLowerCase().replace(/[-_]/g, ' ');
+      if (st.includes('self') || st.includes('without driver')) {
+        normalizedServiceType = 'Self Drive';
+      } else if (st.includes('pick') || st.includes('drop') || st.includes('with driver')) {
+        normalizedServiceType = 'Pick-up/Drop-off';
+      }
+    } else {
+      // Default fallback if missing
+      normalizedServiceType = 'Self Drive';
+    }
+
     console.log('=== BOOKING SUBMISSION DEBUG ===');
-    console.log('Service Type:', serviceType);
+    console.log('Service Type:', normalizedServiceType);
     console.log('Driver ID:', driverId);
     console.log('Driver Name:', driverName);
     console.log('Driver Phone:', driverPhone);
     console.log('Driver Experience:', driverExperience);
 
     // Validate required fields
-    if (!fullName || !mobileNumber || !serviceType || !rentFromDate || !rentToDate || !rentTime || !destination) {
+    if (!fullName || !mobileNumber || !normalizedServiceType || !rentFromDate || !rentToDate || !rentTime || !destination) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -218,7 +234,7 @@ router.post('/', auth.verifyToken, upload.fields([
         company_id,
         company_name,
         vehicle_name || '',
-        serviceType,
+        normalizedServiceType,
         rentFromDate,
         rentToDate,
         rentTime,
@@ -441,7 +457,23 @@ router.post('/bookings', async function (req, res) {
       status
     } = req.body;
 
-    if (!user_name || !mobile_number || !vehicle_name || !service_type || !rent_date || !rent_time || !destination || !status) {
+    // Normalize service_type from various possible input field names
+    let normalizedServiceType = service_type || req.body.serviceType || req.body.serviceType;
+    
+    // Map common variations to standard values
+    if (normalizedServiceType) {
+      const st = normalizedServiceType.toLowerCase().replace(/[-_]/g, ' ');
+      if (st.includes('self') || st.includes('without driver')) {
+        normalizedServiceType = 'Self Drive';
+      } else if (st.includes('pick') || st.includes('drop') || st.includes('with driver')) {
+        normalizedServiceType = 'Pick-up/Drop-off';
+      }
+    } else {
+      // Default fallback if missing
+      normalizedServiceType = 'Self Drive';
+    }
+
+    if (!user_name || !mobile_number || !vehicle_name || !normalizedServiceType || !rent_date || !rent_time || !destination || !status) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -453,7 +485,7 @@ router.post('/bookings', async function (req, res) {
         user_name,
         mobile_number,
         vehicle_name,
-        service_type,
+        normalizedServiceType,
         rent_date,
         rent_time,
         destination,
