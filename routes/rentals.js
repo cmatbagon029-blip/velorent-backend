@@ -101,6 +101,50 @@ router.get('/my-rentals/:id', auth.verifyToken, async function (req, res) {
   }
 });
 
+// Mark rental as returned (user action)
+router.put('/:id/return', auth.verifyToken, async function (req, res) {
+  let connection;
+  try {
+    connection = await createConnection();
+
+    // Verify booking belongs to user and is currently Active
+    const [bookings] = await connection.execute(
+      'SELECT * FROM bookings WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.userId]
+    );
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ error: 'Booking not found or does not belong to you' });
+    }
+
+    const booking = bookings[0];
+    if (booking.status !== 'Active') {
+      return res.status(400).json({ error: 'Only active rentals can be marked as returned' });
+    }
+
+    // Update status to Returned
+    await connection.execute(
+      'UPDATE bookings SET status = "Returned", updated_at = NOW() WHERE id = ?',
+      [req.params.id]
+    );
+
+    // Create notification for the company (optional, but good practice)
+    // For now, just notifying the user
+    await connection.execute(
+      `INSERT INTO notifications (user_id, message, type, related_booking_id, status)
+       VALUES (?, ?, 'rental_update', ?, 'unread')`,
+      [req.user.userId, `You have marked vehicle ${booking.vehicle_name} as returned. Waiting for company inspection.`, req.params.id]
+    );
+
+    res.json({ success: true, message: 'Vehicle marked as returned successfully' });
+  } catch (error) {
+    console.error('Error marking rental as returned:', error);
+    res.status(500).json({ error: 'Failed to update rental status' });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
 // Create new rental and booking with file uploads
 router.post('/', auth.verifyToken, upload.fields([
   { name: 'validId', maxCount: 1 },
