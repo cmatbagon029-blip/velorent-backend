@@ -10,6 +10,9 @@ const requestRoutes = require('./routes/requests');
 const notificationRoutes = require('./routes/notifications');
 const paymentRoutes = require('./routes/payments');
 const chatRoutes = require('./routes/chat');
+const reviewsRoutes = require('./routes/reviews');
+const migrateRoutes = require('./routes/migrate');
+const { startReminderService } = require('./utils/reminders');
 
 const app = express();
 
@@ -36,6 +39,8 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/migrate', migrateRoutes);
 
 // Use the verification routes BEFORE app.listen
 app.use('/api', verificationRoutes);
@@ -87,4 +92,7 @@ const HOST = process.env.HOST || '0.0.0.0'; // Listen on all network interfaces
 app.listen(PORT, HOST, () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
   console.log(`Server accessible at http://localhost:${PORT} and http://192.168.1.21:${PORT}`);
+  
+  // Start the background proactive reminder service
+  startReminderService();
 }); 
