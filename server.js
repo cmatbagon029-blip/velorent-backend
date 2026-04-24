@@ -6,6 +6,7 @@ const companiesRouter = require('./routes/companies');
 const authRouter = require('./routes/auth');
 const rentalsRouter = require('./routes/rentals');
 const reviewsRouter = require('./routes/reviews');
+const notificationsRouter = require('./routes/notifications');
 const { startReminderService } = require('./utils/reminders');
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/vehicles', vehiclesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/rentals', rentalsRouter);
 app.use('/api/reviews', reviewsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 const migrateRouter = require('./routes/migrate');
 app.use('/api/migrate', migrateRouter);
