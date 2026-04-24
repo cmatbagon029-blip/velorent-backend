@@ -53,6 +53,46 @@ router.post('/', auth.verifyToken, async (req, res) => {
     }
 });
 
+// Update an existing review
+router.put('/booking/:bookingId', auth.verifyToken, async (req, res) => {
+    let connection;
+    try {
+        const { rating, comment } = req.body;
+        const booking_id = req.params.bookingId;
+        const user_id = req.user.userId;
+
+        if (!rating) {
+            return res.status(400).json({ error: 'Rating is required' });
+        }
+
+        connection = await createConnection();
+
+        // 1. Verify review exists and belongs to user
+        const [existing] = await connection.execute(
+            'SELECT id FROM reviews WHERE booking_id = ? AND user_id = ?',
+            [booking_id, user_id]
+        );
+
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Review not found or you do not have permission' });
+        }
+
+        // 2. Update review
+        await connection.execute(
+            'UPDATE reviews SET rating = ?, comment = ? WHERE booking_id = ? AND user_id = ?',
+            [rating, comment || null, booking_id, user_id]
+        );
+
+        res.json({ message: 'Review updated successfully' });
+    } catch (error) {
+        console.error('Error updating review:', error);
+        res.status(500).json({ error: 'Failed to update review', details: error.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+
 // Get review for a specific booking
 router.get('/booking/:bookingId', auth.verifyToken, async (req, res) => {
     let connection;
